@@ -1,7 +1,7 @@
 import { MongoClient, ServerApiVersion } from 'mongodb'
 import { env } from './environment.config.js'
 
-let pcDatabaseInstance = null
+let gmsDatabaseInstance = null
 
 const mongoClientInstance = new MongoClient(env.MONGODB_URL, {
   serverApi: {
@@ -13,12 +13,12 @@ const mongoClientInstance = new MongoClient(env.MONGODB_URL, {
 
 export const CONNECT_DB = async () => {
   await mongoClientInstance.connect()
-  pcDatabaseInstance = mongoClientInstance.db(env.DATABASE_NAME)
+  gmsDatabaseInstance = mongoClientInstance.db(env.DATABASE_NAME)
 }
 
 export const GET_DB = () => {
-  if (!pcDatabaseInstance) throw new Error('Must connect to database first')
-  return pcDatabaseInstance
+  if (!gmsDatabaseInstance) throw new Error('Must connect to database first')
+  return gmsDatabaseInstance
 }
 
 export const CLOSE_DB = async () => {

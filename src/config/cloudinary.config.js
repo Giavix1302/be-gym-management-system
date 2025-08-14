@@ -12,7 +12,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'pc-products', // tên thư mục trên Cloudinary
+    folder: 'gms-image', // tên thư mục trên Cloudinary
     allowed_formats: ['jpg', 'png', 'jpeg', 'webp']
   }
 })
