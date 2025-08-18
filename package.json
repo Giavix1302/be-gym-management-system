@@ -25,7 +25,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
     "multer": "^2.0.1",
-    "multer-storage-cloudinary": "^4.0.0"
+    "multer-storage-cloudinary": "^4.0.0",
+    "twilio": "^5.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

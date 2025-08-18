@@ -41,7 +41,7 @@ const START_APP = () => {
   })
 }
 
-(async () => {
+;(async () => {
   try {
     console.log('Connecting to MongoDB Atlas...')
     await CONNECT_DB()

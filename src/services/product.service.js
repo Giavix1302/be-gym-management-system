@@ -1,5 +1,3 @@
-import { productModel } from '../models/product.model.js'
-
 const addProduct = async (req) => {
   try {
     // handle data
@@ -9,17 +7,17 @@ const addProduct = async (req) => {
     const product = {
       ...req.body,
       imgUrl: image.path,
-      color: JSON.parse(req.body.color)
+      color: JSON.parse(req.body.color),
     }
 
-    // create product
-    await productModel.createNew(product)
-    const listProduct = await productModel.getListProduct()
+    // // create product
+    // await productModel.createNew(product)
+    // const listProduct = await productModel.getListProduct()
 
     return {
       success: true,
       message: 'Product created successfully',
-      data: [...listProduct]
+      // data: [...listProduct]
     }
   } catch (error) {
     throw new Error(error)
@@ -28,11 +26,11 @@ const addProduct = async (req) => {
 
 const getListProduct = async () => {
   try {
-    const listProduct = await productModel.getListProduct()
-
+    // const listProduct = await productModel.getListProduct()
+    const a = 1231
     return {
       success: true,
-      data: [...listProduct]
+      // data: [...listProduct]
     }
   } catch (error) {
     throw new Error(error)
@@ -48,7 +46,7 @@ const updateProduct = async (req) => {
       ...req.body,
       ...(image && { imgUrl: image.path }),
       color: JSON.parse(req.body.color),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     }
 
     const result = await productModel.updateProduct(productId, updateData)
@@ -57,14 +55,14 @@ const updateProduct = async (req) => {
     if (result === null) {
       return {
         success: false,
-        message: 'Product doesn\'t exist.',
+        message: "Product doesn't exist.",
       }
     }
 
     return {
       success: true,
       message: 'Product updated successfully',
-      data: [...listProduct]
+      data: [...listProduct],
     }
   } catch (error) {
     throw new Error(error)
@@ -79,7 +77,7 @@ const deleteProduct = async (productId) => {
     return {
       success: result === 1,
       message: result === 1 ? 'Delete done!' : 'Delete false!',
-      data: result === 1 ? [...listProduct] : ''
+      data: result === 1 ? [...listProduct] : '',
     }
   } catch (error) {
     throw new Error(error)
@@ -90,5 +88,5 @@ export const productService = {
   addProduct,
   updateProduct,
   deleteProduct,
-  getListProduct
+  getListProduct,
 }
