@@ -1,7 +1,7 @@
 import { ObjectId, ReturnDocument } from 'mongodb'
 import Joi from 'joi'
-import { GET_DB } from '../config/mongodb.config.js'
-import { USER_TYPES, GENDER_TYPE, STATUS_TYPE } from '../utils/constants.js'
+import { GET_DB } from '~/config/mongodb.config.js'
+import { USER_TYPES, GENDER_TYPE, STATUS_TYPE } from '~/utils/constants.js'
 
 const USER_COLLECTION_NAME = 'users'
 const USER_COLLECTION_SCHEMA = Joi.object({

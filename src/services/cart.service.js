@@ -1,6 +1,6 @@
-import { userService } from './user.service.js'
-import { handleHashedPassword, isMatch } from '../utils/bcrypt.js'
-import { signToken } from '../utils/jwt.js'
+import { userService } from '~/services/user.service.js'
+import { handleHashedPassword, isMatch } from '~/utils/bcrypt.js'
+import { signToken } from '~/utils/jwt.js'
 
 const addToCart = async (req) => {
   try {

@@ -1,6 +1,6 @@
 import Joi from 'joi'
 import { StatusCodes } from 'http-status-codes'
-import { USER_TYPES } from '../utils/constants.js'
+import { USER_TYPES } from '~/utils/constants.js'
 
 const login = async (req, res, next) => {
   const correctValidation = Joi.object({
@@ -24,8 +24,11 @@ const signup = async (req, res, next) => {
     password: Joi.string().required().trim().strict(),
     name: Joi.string().required().min(2).trim().strict(),
     email: Joi.string().email().required().trim().strict(),
-    phone: Joi.string().regex(/^[0-9]{10}$/).messages({ 'string.pattern.base': 'Phone number must have 10 digits.' }).required(),
-    role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.ADMIN).required()
+    phone: Joi.string()
+      .regex(/^[0-9]{10}$/)
+      .messages({ 'string.pattern.base': 'Phone number must have 10 digits.' })
+      .required(),
+    role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.ADMIN).required(),
   })
 
   try {
@@ -40,5 +43,5 @@ const signup = async (req, res, next) => {
 
 export const accountValidation = {
   login,
-  signup
+  signup,
 }

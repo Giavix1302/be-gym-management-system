@@ -1,5 +1,5 @@
 import { createClient } from 'redis'
-import { env } from '../config/environment.config.js'
+import { env } from '~/config/environment.config.js'
 
 const redisCloud = createClient({
   username: 'default',

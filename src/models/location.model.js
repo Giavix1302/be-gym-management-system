@@ -1,6 +1,6 @@
 import { ObjectId, ReturnDocument } from 'mongodb'
 import Joi from 'joi'
-import { GET_DB } from '../config/mongodb.config.js'
+import { GET_DB } from '~/config/mongodb.config.js'
 
 const LOCATION_COLLECTION_NAME = 'locations'
 const LOCATION_COLLECTION_SCHEMA = Joi.object({

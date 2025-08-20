@@ -1,6 +1,6 @@
 import Joi from 'joi'
 import { StatusCodes } from 'http-status-codes'
-import { USER_TYPES, GENDER_TYPE, STATUS_TYPE } from '../utils/constants.js'
+import { USER_TYPES, GENDER_TYPE, STATUS_TYPE } from '~/utils/constants.js'
 
 const login = async (req, res, next) => {
   const correctValidation = Joi.object({

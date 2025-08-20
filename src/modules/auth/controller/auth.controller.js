@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import { userService } from '~/services/user.service.js'
 import { accountService } from '~/services/account.service.js'
-import { authService } from '~/services/auth.service.js'
+import { authService } from '../service/auth.service'
 
 const login = async (req, res, next) => {
   try {

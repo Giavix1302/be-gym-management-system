@@ -1,11 +1,10 @@
-import { sendOtpService, verifyOtp } from '../utils/twilio.js'
-import { env } from '../config/environment.config.js'
+import { sendOtpService, verifyOtp } from '~/utils/twilio.js'
+import { env } from '~/config/environment.config.js'
 
-import { userService } from './user.service.js'
-import { handleHashedPassword, isMatch } from '../utils/bcrypt.js'
-import { signToken } from '../utils/jwt.js'
+import { handleHashedPassword, isMatch } from '~/utils/bcrypt.js'
+import { signToken } from '~/utils/jwt.js'
 import { saveUserTemp, getUserTemp } from '~/utils/redis.js'
-import { userModel } from '~/models/user.model.js'
+import { userModel } from '~/modules/user/model/user.model'
 
 const login = async (reqBody) => {
   try {

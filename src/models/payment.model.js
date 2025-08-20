@@ -1,8 +1,8 @@
 import { ObjectId, ReturnDocument } from 'mongodb'
 import Joi from 'joi'
-import { GET_DB } from '../config/mongodb.config.js'
+import { GET_DB } from '~/config/mongodb.config.js'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators.js'
-import { PAYMENT_METHOD, PAYMENT_TYPE } from '../utils/constants.js'
+import { PAYMENT_METHOD, PAYMENT_TYPE } from '~/utils/constants.js'
 
 const PAYMENT_COLLECTION_NAME = 'payments'
 const PAYMENT_COLLECTION_SCHEMA = Joi.object({

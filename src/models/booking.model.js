@@ -1,8 +1,8 @@
 import { ObjectId, ReturnDocument } from 'mongodb'
 import Joi from 'joi'
-import { GET_DB } from '../config/mongodb.config.js'
+import { GET_DB } from '~/config/mongodb.config.js'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators.js'
-import { BOOKING_STATUS } from '../utils/constants.js'
+import { BOOKING_STATUS } from '~/utils/constants.js'
 
 const BOOKING_COLLECTION_NAME = 'bookings'
 const BOOKING_COLLECTION_SCHEMA = Joi.object({

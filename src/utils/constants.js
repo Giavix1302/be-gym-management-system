@@ -18,6 +18,7 @@ export const STATUS_TYPE = {
 export const MEMBERSHIP_TYPE = {
   GYM: 'gym',
   YOGA: 'yoga',
+  BOXING: 'boxing',
 }
 
 export const MEMBER_MEMBERSHIP_STATUS = {

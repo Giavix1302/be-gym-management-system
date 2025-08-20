@@ -1,7 +1,7 @@
 import { ObjectId, ReturnDocument } from 'mongodb'
 import Joi from 'joi'
-import { GET_DB } from '../config/mongodb.config.js'
-import { MEMBER_MEMBERSHIP_STATUS } from '../utils/constants.js'
+import { GET_DB } from '~/config/mongodb.config.js'
+import { MEMBER_MEMBERSHIP_STATUS } from '~/utils/constants.js'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators.js'
 
 const MEMBER_MEMBERSHIP_COLLECTION_NAME = 'memberMemberships'

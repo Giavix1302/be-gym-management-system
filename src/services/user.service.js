@@ -1,4 +1,4 @@
-import { userModel } from '../models/user.model.js'
+import { userModel } from '~/modules/user/model/user.model.js'
 
 const createNew = async (reqBody) => {
   try {
@@ -21,5 +21,5 @@ const getDetail = async (userId) => {
 
 export const userService = {
   createNew,
-  getDetail
+  getDetail,
 }

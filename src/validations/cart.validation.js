@@ -1,19 +1,19 @@
 import Joi from 'joi'
 import { StatusCodes } from 'http-status-codes'
-import { USER_TYPES } from '../utils/constants.js'
+import { USER_TYPES } from '~/utils/constants.js'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators.js'
 
 /**
  * cartId
  * productId
  * quantity
- * 
+ *
  */
 const addToCart = async (req, res, next) => {
   const correctValidation = Joi.object({
     cartId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     productId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    quantity: Joi.number().min(1).required()
+    quantity: Joi.number().min(1).required(),
   })
 
   try {
@@ -33,7 +33,7 @@ const addToCart = async (req, res, next) => {
 const updateQuantity = async (req, res, next) => {
   const correctValidation = Joi.object({
     cartDetailId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    quantity: Joi.number().min(1).required()
+    quantity: Joi.number().min(1).required(),
   })
 
   try {
@@ -48,5 +48,5 @@ const updateQuantity = async (req, res, next) => {
 
 export const cartValidation = {
   addToCart,
-  updateQuantity
+  updateQuantity,
 }
