@@ -3,7 +3,8 @@ import dotenv from 'dotenv'
 import corsConfig from './config/cors.config.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { APIs_V1 } from './routers/v1/index.js'
-import { CLOSE_DB, CONNECT_DB } from './config/mongodb.config.js'
+import { CONNECT_DB } from './config/mongodb.config.js'
+import { initRedis } from '~/utils/redis.js'
 
 const START_APP = () => {
   // Đọc biến môi trường từ file .env
@@ -45,8 +46,12 @@ const START_APP = () => {
   try {
     console.log('Connecting to MongoDB Atlas...')
     await CONNECT_DB()
-
     console.log('Connected to MongoDB Atlas!')
+
+    console.log('Connecting to Redis Cloud...')
+    await initRedis()
+    console.log('✅ Connected to Redis Cloud!')
+
     START_APP()
   } catch (error) {
     console.error('Error connecting to MongoDB Atlas:', error)
