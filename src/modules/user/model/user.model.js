@@ -5,22 +5,22 @@ import { USER_TYPES, GENDER_TYPE, STATUS_TYPE } from '~/utils/constants.js'
 
 const USER_COLLECTION_NAME = 'users'
 const USER_COLLECTION_SCHEMA = Joi.object({
-  fullName: Joi.string().required().min(2).trim().strict(),
-  email: Joi.string().email().trim().strict(),
+  fullName: Joi.string().min(2).trim().strict().default(''),
+  email: Joi.string().email().trim().strict().default(''),
   phone: Joi.string()
     .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
     .messages({
       'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
     })
     .required(),
-  avatar: Joi.string().trim().strict(),
+  avatar: Joi.string().trim().strict().default(''),
   password: Joi.string().required().trim().strict(),
-  age: Joi.number().min(1).max(120),
-  dateOfBirth: Joi.date().iso().required(), // 13/02/2004
-  address: Joi.string().trim().strict(),
-  gender: Joi.string().valid(GENDER_TYPE.MALE, GENDER_TYPE.FEMALE, GENDER_TYPE.OTHER).required(),
+  age: Joi.number().min(1).max(120).default(null),
+  dateOfBirth: Joi.date().iso().default(null), // 13/02/2004
+  address: Joi.string().trim().strict().default(''),
+  gender: Joi.string().valid(GENDER_TYPE.MALE, GENDER_TYPE.FEMALE, GENDER_TYPE.OTHER).default(null),
 
-  role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.ADMIN, USER_TYPES.PT).required(),
+  role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.ADMIN, USER_TYPES.PT).default(USER_TYPES.USER),
 
   status: Joi.string().valid(STATUS_TYPE.ACTIVE, STATUS_TYPE.INACTIVE).required(),
 
@@ -63,6 +63,18 @@ const getDetailByPhone = async (phone) => {
     })
     return user
   } catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+const updateInfo = async (userId, data) => {
+  try {
+    const updatedUser = await GET_DB()
+      .collection(USER_COLLECTION_NAME)
+      .findOneAndUpdate({ _id: new ObjectId(String(userId)) }, { $set: data }, { returnDocument: 'after' })
+    return updatedUser
+  } catch (error) {
     throw new Error(error)
   }
 }
@@ -73,4 +85,5 @@ export const userModel = {
   createNew,
   getDetailById,
   getDetailByPhone,
+  updateInfo,
 }

@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes'
-import { userService } from '../services/user.service.js'
+import { userService } from '../modules/user/service/user.service.js'
 import { accountService } from '../services/account.service.js'
 
 const login = async (req, res, next) => {

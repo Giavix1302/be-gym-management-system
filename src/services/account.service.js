@@ -1,4 +1,4 @@
-import { userService } from '~/services/user.service.js'
+import { userService } from '~/modules/user/service/user.service.js'
 import { handleHashedPassword, isMatch } from '~/utils/bcrypt.js'
 import { signToken } from '~/utils/jwt.js'
 

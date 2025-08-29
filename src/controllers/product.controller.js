@@ -1,10 +1,10 @@
 import { StatusCodes } from 'http-status-codes'
-import { userService } from '../services/user.service.js'
+import { userService } from '../modules/user/service/user.service.js'
 import { accountService } from '../services/account.service.js'
 import { productService } from '../services/product.service.js'
 
 /**
- *  
+ *
  */
 
 const addProduct = async (req, res, next) => {
@@ -16,7 +16,9 @@ const addProduct = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 const getListProduct = async (req, res, next) => {
@@ -28,7 +30,9 @@ const getListProduct = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 const updateProduct = async (req, res, next) => {
@@ -40,7 +44,9 @@ const updateProduct = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 const deleteProduct = async (req, res, next) => {
@@ -54,12 +60,14 @@ const deleteProduct = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 export const productController = {
   addProduct,
   updateProduct,
   deleteProduct,
-  getListProduct
+  getListProduct,
 }

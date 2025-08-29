@@ -1,7 +1,7 @@
 import { ObjectId, ReturnDocument } from 'mongodb'
 import Joi from 'joi'
 import { GET_DB } from '~/config/mongodb.config.js'
-import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators.js'
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators.js'
 import { PAYMENT_METHOD, PAYMENT_TYPE } from '~/utils/constants.js'
 
 const PAYMENT_COLLECTION_NAME = 'payments'
@@ -33,8 +33,13 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data, { abortEarly: false })
-    const createdUser = await GET_DB().collection(PAYMENT_COLLECTION_NAME).insertOne(validData)
-    return createdUser
+    const newPaymentToAdd = {
+      ...validData,
+      userId: new ObjectId(String(validData.userId)),
+      referenceId: new ObjectId(String(validData.referenceId)),
+    }
+    const createdPayment = await GET_DB().collection(PAYMENT_COLLECTION_NAME).insertOne(newPaymentToAdd)
+    return createdPayment
   } catch (error) {
     throw new Error(error)
   }
@@ -53,7 +58,7 @@ const getDetail = async (userId) => {
   }
 }
 
-export const checkinModel = {
+export const paymentModel = {
   PAYMENT_COLLECTION_NAME,
   PAYMENT_COLLECTION_SCHEMA,
   createNew,

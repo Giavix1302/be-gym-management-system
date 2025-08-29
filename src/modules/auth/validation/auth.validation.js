@@ -21,7 +21,6 @@ const login = async (req, res, next) => {
 // usable
 const signup = async (req, res, next) => {
   const correctValidation = Joi.object({
-    fullName: Joi.string().required().min(2).trim().strict(),
     phone: Joi.string()
       .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
       .messages({
@@ -29,9 +28,6 @@ const signup = async (req, res, next) => {
       })
       .required(),
     password: Joi.string().required().trim().strict(),
-    dateOfBirth: Joi.date().iso().required(),
-    gender: Joi.string().valid(GENDER_TYPE.MALE, GENDER_TYPE.FEMALE, GENDER_TYPE.OTHER).required(),
-    role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.ADMIN, USER_TYPES.PT).required(),
   })
 
   try {

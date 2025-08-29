@@ -21,7 +21,7 @@ export const MEMBERSHIP_TYPE = {
   BOXING: 'boxing',
 }
 
-export const MEMBER_MEMBERSHIP_STATUS = {
+export const SUBSCRIPTION_STATUS = {
   ACTIVE: 'active',
   EXPIRED: 'expired',
 }
@@ -54,4 +54,9 @@ export const PAYMENT_METHOD = {
   BANK: 'bank',
   MOMO: 'momo',
   VNPAY: 'vnpay',
+}
+
+export const PAYMENT_STATUS = {
+  PAID: 'paid',
+  UNPAID: 'unpaid',
 }

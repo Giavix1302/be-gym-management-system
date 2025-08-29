@@ -7,7 +7,7 @@ const MEMBERSHIP_COLLECTION_NAME = 'memberships'
 const MEMBERSHIP_COLLECTION_SCHEMA = Joi.object({
   name: Joi.string().required().min(2).trim().strict(),
   durationMonth: Joi.number().min(1).max(120).required(),
-  price: Joi.number().min(1).required().required(),
+  price: Joi.number().min(1).required(),
   discount: Joi.number().min(0).max(100).required(),
   description: Joi.string().trim().strict().required(),
   type: Joi.string().valid(MEMBERSHIP_TYPE.GYM, MEMBERSHIP_TYPE.YOGA, MEMBERSHIP_TYPE.BOXING).required(),
@@ -34,7 +34,7 @@ const createNew = async (data) => {
   }
 }
 
-const getDetail = async (membershipId) => {
+const getDetailById = async (membershipId) => {
   try {
     const user = GET_DB()
       .collection(MEMBERSHIP_COLLECTION_NAME)
@@ -51,5 +51,5 @@ export const membershipModel = {
   MEMBERSHIP_COLLECTION_NAME,
   MEMBERSHIP_COLLECTION_SCHEMA,
   createNew,
-  getDetail,
+  getDetailById,
 }

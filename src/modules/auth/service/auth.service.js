@@ -5,6 +5,7 @@ import { handleHashedPassword, isMatch } from '~/utils/bcrypt.js'
 import { signToken } from '~/utils/jwt.js'
 import { saveUserTemp, getUserTemp } from '~/utils/redis.js'
 import { userModel } from '~/modules/user/model/user.model'
+import { sanitize } from '~/utils/utils'
 
 const login = async (reqBody) => {
   try {
@@ -107,7 +108,7 @@ const signup = async (reqBody) => {
 const verify = async (reqBody) => {
   try {
     const { phone, code } = reqBody
-
+    // production
     if (process.env.NODE_ENV === 'production') {
       const result = await verifyOtp(phone, code)
       if (result.success) {
@@ -134,11 +135,13 @@ const verify = async (reqBody) => {
 
         // add dữ liệu vào database
         const result = await userModel.createNew(userData)
-        console.log('🚀 ~ verify ~ result:', result)
+        const user = await userModel.getDetailById(result.insertedId)
+        console.log('🚀 ~ verify ~ result:', user)
 
         return {
           success: true,
           message: 'Account created successfully',
+          user: sanitize(user),
         }
       } else {
         return {
@@ -146,12 +149,6 @@ const verify = async (reqBody) => {
           message: 'Invalid code',
         }
       }
-    }
-
-    return {
-      success: true,
-      message: 'Account created successfully',
-      // result,
     }
   } catch (error) {
     throw new Error(error)

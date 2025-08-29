@@ -1,10 +1,10 @@
 import { StatusCodes } from 'http-status-codes'
-import { userService } from '../services/user.service.js'
+import { userService } from '../modules/user/service/user.service.js'
 import { accountService } from '../services/account.service.js'
 import { cartService } from '../services/cart.service.js'
 
 /**
- *  
+ *
  */
 
 const addToCart = async (req, res, next) => {
@@ -16,7 +16,9 @@ const addToCart = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNAUTHORIZED).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 const getListCartDetail = async (req, res, next) => {
@@ -28,7 +30,9 @@ const getListCartDetail = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNAUTHORIZED).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 const updateQuantity = async (req, res, next) => {
@@ -42,7 +46,9 @@ const updateQuantity = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNAUTHORIZED).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 const deleteCartDetail = async (req, res, next) => {
@@ -56,12 +62,14 @@ const deleteCartDetail = async (req, res, next) => {
     } else {
       res.status(StatusCodes.UNAUTHORIZED).json(result)
     }
-  } catch (error) { next(error) }
+  } catch (error) {
+    next(error)
+  }
 }
 
 export const cartController = {
   addToCart,
   getListCartDetail,
   deleteCartDetail,
-  updateQuantity
+  updateQuantity,
 }
