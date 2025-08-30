@@ -11,11 +11,12 @@ const LOCATION_COLLECTION_SCHEMA = Joi.object({
     province: Joi.string().required(),
   }),
   phone: Joi.string()
-    .regex(/^[0-9]{10}$/)
-    .messages({ 'string.pattern.base': 'Phone number must have 10 digits.' })
+    .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
+    .messages({
+      'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
+    })
     .required(),
-
-  image: Joi.array().items(Joi.string().trim().strict()).default([]),
+  images: Joi.array().items(Joi.string().trim().strict()).default([]),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -30,56 +31,56 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data, { abortEarly: false })
-    const createdProduct = await GET_DB().collection(LOCATION_COLLECTION_NAME).insertOne(validData)
-    return createdProduct
+    const createdLocation = await GET_DB().collection(LOCATION_COLLECTION_NAME).insertOne(validData)
+    return createdLocation
   } catch (error) {
     throw new Error(error)
   }
 }
 
-const getDetail = async (productId) => {
+const getDetail = async (locationId) => {
   try {
-    const product = await GET_DB()
+    const location = await GET_DB()
       .collection(LOCATION_COLLECTION_NAME)
       .findOne({
-        _id: new ObjectId(String(productId)),
+        _id: new ObjectId(String(locationId)),
       })
-    return product
+    return location
   } catch (error) {
     throw new Error(error)
   }
 }
 
-const getListProduct = async () => {
+const getListLocation = async () => {
   try {
-    const listProduct = await GET_DB().collection(LOCATION_COLLECTION_NAME).find({}).toArray()
-    return listProduct
+    const listLocation = await GET_DB().collection(LOCATION_COLLECTION_NAME).find({}).toArray()
+    return listLocation
   } catch (error) {
     throw new Error(error)
   }
 }
 
-const updateProduct = async (productId, updateData) => {
+const updateLocation = async (locationId, updateData) => {
   try {
-    const updatedProduct = await GET_DB()
+    const updatedLocation = await GET_DB()
       .collection(LOCATION_COLLECTION_NAME)
       .findOneAndUpdate(
-        { _id: new ObjectId(String(productId)) },
+        { _id: new ObjectId(String(locationId)) },
         { $set: updateData },
         { returnDocument: 'after' }
       )
-    return updatedProduct
+    return updatedLocation
   } catch (error) {
     throw new Error(error)
   }
 }
 
-const deleteProduct = async (productId) => {
+const deleteLocation = async (locationId) => {
   try {
-    const updatedProduct = await GET_DB()
+    const updatedLocation = await GET_DB()
       .collection(LOCATION_COLLECTION_NAME)
-      .deleteOne({ _id: new ObjectId(String(productId)) })
-    return updatedProduct.deletedCount
+      .deleteOne({ _id: new ObjectId(String(locationId)) })
+    return updatedLocation.deletedCount
   } catch (error) {
     throw new Error(error)
   }
@@ -90,7 +91,7 @@ export const locationModel = {
   LOCATION_COLLECTION_SCHEMA,
   createNew,
   getDetail,
-  getListProduct,
-  updateProduct,
-  deleteProduct,
+  getListLocation,
+  updateLocation,
+  deleteLocation,
 }

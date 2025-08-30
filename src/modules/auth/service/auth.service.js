@@ -109,6 +109,7 @@ const verify = async (reqBody) => {
   try {
     const { phone, code } = reqBody
     // production
+    // chưa fix gửi token và dữ liệu cho FE
     if (process.env.NODE_ENV === 'production') {
       const result = await verifyOtp(phone, code)
       if (result.success) {

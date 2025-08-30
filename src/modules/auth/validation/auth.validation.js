@@ -28,6 +28,8 @@ const signup = async (req, res, next) => {
       })
       .required(),
     password: Joi.string().required().trim().strict(),
+    fullName: Joi.string().min(2).trim().strict().required(),
+    role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.PT).required(),
   })
 
   try {
