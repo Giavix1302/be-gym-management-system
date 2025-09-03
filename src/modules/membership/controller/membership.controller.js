@@ -19,9 +19,9 @@ const addMembership = async (req, res, next) => {
   }
 }
 
-const getListProduct = async (req, res, next) => {
+const getListMembership = async (req, res, next) => {
   try {
-    const result = await membershipService.getListProduct()
+    const result = await membershipService.getListMembership()
 
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
@@ -67,5 +67,5 @@ export const membershipController = {
   addMembership,
   updateProduct,
   deleteProduct,
-  getListProduct,
+  getListMembership,
 }

@@ -30,13 +30,17 @@ const addMembership = async (req) => {
   }
 }
 
-const getListProduct = async () => {
+const getListMembership = async () => {
   try {
-    // const listProduct = await productModel.getListProduct()
-    const a = 1231
+    const list = await membershipModel.getListWithQuantityUser()
+
+    const arr = Object.values(list)
+    console.log('🚀 ~ getListMembership ~ arr:', arr)
+
     return {
       success: true,
-      // data: [...listProduct]
+      message: 'Get list membership successfully',
+      memberships: arr.map((ar) => sanitize(ar)),
     }
   } catch (error) {
     throw new Error(error)
@@ -92,4 +96,5 @@ const deleteProduct = async (productId) => {
 
 export const membershipService = {
   addMembership,
+  getListMembership,
 }

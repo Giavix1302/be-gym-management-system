@@ -30,13 +30,17 @@ const createNew = async (req, res, next) => {
 
 const updateInfo = async (req, res, next) => {
   const correctValidation = Joi.object({
-    fullName: Joi.string().min(2).trim().strict(),
-    email: Joi.string().email().trim().strict(),
-    age: Joi.number().min(1).max(120),
-    dateOfBirth: Joi.date().iso(), // 13/02/2004
-    address: Joi.string().trim().strict(),
-    gender: Joi.string().valid(GENDER_TYPE.MALE, GENDER_TYPE.FEMALE, GENDER_TYPE.OTHER),
-    role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.PT),
+    name: Joi.string().min(2).trim().strict(),
+    address: Joi.object({
+      street: Joi.string(),
+      ward: Joi.string(),
+      province: Joi.string(),
+    }),
+    phone: Joi.string()
+      .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
+      .messages({
+        'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
+      }),
   })
 
   try {

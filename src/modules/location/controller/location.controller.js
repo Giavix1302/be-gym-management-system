@@ -27,8 +27,8 @@ const getDetail = async (req, res, next) => {
 
 const updateInfo = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const result = await locationService.updateInfo(userId, req.body)
+    const locationId = req.params.id
+    const result = await locationService.updateInfo(locationId, req.body)
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {

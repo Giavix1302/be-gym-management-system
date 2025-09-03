@@ -38,7 +38,7 @@ const createNew = async (data) => {
   }
 }
 
-const getDetail = async (locationId) => {
+const getDetailById = async (locationId) => {
   try {
     const location = await GET_DB()
       .collection(LOCATION_COLLECTION_NAME)
@@ -60,7 +60,7 @@ const getListLocation = async () => {
   }
 }
 
-const updateLocation = async (locationId, updateData) => {
+const updateInfo = async (locationId, updateData) => {
   try {
     const updatedLocation = await GET_DB()
       .collection(LOCATION_COLLECTION_NAME)
@@ -90,8 +90,8 @@ export const locationModel = {
   LOCATION_COLLECTION_NAME,
   LOCATION_COLLECTION_SCHEMA,
   createNew,
-  getDetail,
+  getDetailById,
   getListLocation,
-  updateLocation,
+  updateInfo,
   deleteLocation,
 }

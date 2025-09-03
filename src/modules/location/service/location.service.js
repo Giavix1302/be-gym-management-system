@@ -40,29 +40,28 @@ const getDetail = async (userId) => {
   }
 }
 
-const updateInfo = async (userId, data) => {
+const updateInfo = async (locationId, data) => {
   try {
     // check existing user
-    const existingUser = await locationModel.getDetailById(userId)
-    console.log('🚀 ~ update ~ existingUser:', existingUser)
-    if (existingUser === null) {
+    const existingLocation = await locationModel.getDetailById(locationId)
+    if (existingLocation === null) {
       return {
         success: false,
-        message: 'User not found',
+        message: 'Location not found',
       }
     }
     const updateData = {
       ...data,
       updatedAt: Date.now(),
     }
-    const result = await locationModel.updateInfo(userId, updateData)
-    console.log('🚀 ~ updateInfo ~ result:', result)
+    const result = await locationModel.updateInfo(locationId, updateData)
 
-    // update user
+    // update s
     return {
       success: true,
-      data: {
-        info: sanitize(result),
+      message: 'Location updated successfully',
+      location: {
+        ...sanitize(result),
       },
     }
   } catch (error) {

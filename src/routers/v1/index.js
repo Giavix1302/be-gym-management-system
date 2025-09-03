@@ -5,9 +5,9 @@ import { cartRoute } from './cart.route.js'
 import { productRoute } from './product.route.js'
 import { authRoute } from '~/modules/auth/router/auth.route.js'
 
-import { memberRoute } from '~/modules/membership/router/membership.router.js'
-import { paymentRoute } from '~/modules/payment/router/payment.router.js'
-import { subscriptionRoute } from '~/modules/subscription/router/subscription.router.js'
+import { memberRoute } from '~/modules/membership/router/membership.route.js'
+import { paymentRoute } from '~/modules/payment/router/payment.route.js'
+import { subscriptionRoute } from '~/modules/subscription/router/subscription.route.js'
 import { locationRoute } from '~/modules/location/router/location.route.js'
 
 const Router = express.Router()

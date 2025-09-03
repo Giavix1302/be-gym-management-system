@@ -2,6 +2,7 @@ import { ObjectId, ReturnDocument } from 'mongodb'
 import Joi from 'joi'
 import { GET_DB } from '~/config/mongodb.config.js'
 import { MEMBERSHIP_TYPE } from '~/utils/constants.js'
+import { subscriptionModel } from '~/modules/subscription/model/subscription.model'
 
 const MEMBERSHIP_COLLECTION_NAME = 'memberships'
 const MEMBERSHIP_COLLECTION_SCHEMA = Joi.object({
@@ -47,9 +48,53 @@ const getDetailById = async (membershipId) => {
   }
 }
 
+const getList = async () => {
+  try {
+    const listLocation = await GET_DB().collection(MEMBERSHIP_COLLECTION_NAME).find({}).toArray()
+    return listLocation
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const getListWithQuantityUser = async () => {
+  try {
+    const db = await GET_DB()
+    const listMembership = await db
+      .collection(MEMBERSHIP_COLLECTION_NAME)
+      .aggregate([
+        {
+          $lookup: {
+            from: subscriptionModel.SUBSCRIPTION_COLLECTION_NAME,
+            localField: '_id',
+            foreignField: 'membershipId',
+            as: 'subscriptions',
+          },
+        },
+        {
+          $addFields: {
+            totalUsers: { $size: '$subscriptions' },
+          },
+        },
+        {
+          $project: {
+            subscriptions: 0, // không cần trả về subscriptions chi tiết
+          },
+        },
+      ])
+      .toArray()
+
+    return listMembership
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const membershipModel = {
   MEMBERSHIP_COLLECTION_NAME,
   MEMBERSHIP_COLLECTION_SCHEMA,
   createNew,
   getDetailById,
+  getList,
+  getListWithQuantityUser,
 }
