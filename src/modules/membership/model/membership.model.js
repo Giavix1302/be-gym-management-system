@@ -12,6 +12,7 @@ const MEMBERSHIP_COLLECTION_SCHEMA = Joi.object({
   discount: Joi.number().min(0).max(100).required(),
   description: Joi.string().trim().strict().required(),
   type: Joi.string().valid(MEMBERSHIP_TYPE.GYM, MEMBERSHIP_TYPE.YOGA, MEMBERSHIP_TYPE.BOXING).required(),
+  features: Joi.array().items(Joi.string().trim().strict()).default([]),
   bannerURL: Joi.string().trim().strict().required(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
@@ -37,12 +38,35 @@ const createNew = async (data) => {
 
 const getDetailById = async (membershipId) => {
   try {
-    const user = GET_DB()
+    const db = await GET_DB()
+    const detail = await db
       .collection(MEMBERSHIP_COLLECTION_NAME)
-      .findOne({
-        _id: new ObjectId(String(membershipId)),
-      })
-    return user
+      .aggregate([
+        {
+          $match: { _id: new ObjectId(String(membershipId)) },
+        },
+        {
+          $lookup: {
+            from: subscriptionModel.SUBSCRIPTION_COLLECTION_NAME,
+            localField: '_id',
+            foreignField: 'membershipId',
+            as: 'subscriptions',
+          },
+        },
+        {
+          $addFields: {
+            totalUsers: { $size: '$subscriptions' },
+          },
+        },
+        {
+          $project: {
+            subscriptions: 0, // bỏ chi tiết subscriptions cho gọn
+          },
+        },
+      ])
+      .toArray()
+
+    return detail[0] || null
   } catch (error) {
     throw new Error(error)
   }
@@ -90,6 +114,32 @@ const getListWithQuantityUser = async () => {
   }
 }
 
+const updateInfo = async (membershipId, updateData) => {
+  try {
+    const updatedMembership = await GET_DB()
+      .collection(MEMBERSHIP_COLLECTION_NAME)
+      .findOneAndUpdate(
+        { _id: new ObjectId(String(membershipId)) },
+        { $set: updateData },
+        { returnDocument: 'after' }
+      )
+    return updatedMembership
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const deleteMembership = async (membershipId) => {
+  try {
+    const result = await GET_DB()
+      .collection(MEMBERSHIP_COLLECTION_NAME)
+      .deleteOne({ _id: new ObjectId(String(membershipId)) })
+    return result.deletedCount
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const membershipModel = {
   MEMBERSHIP_COLLECTION_NAME,
   MEMBERSHIP_COLLECTION_SCHEMA,
@@ -97,4 +147,6 @@ export const membershipModel = {
   getDetailById,
   getList,
   getListWithQuantityUser,
+  updateInfo,
+  deleteMembership,
 }

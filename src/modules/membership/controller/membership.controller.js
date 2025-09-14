@@ -33,9 +33,9 @@ const getListMembership = async (req, res, next) => {
   }
 }
 
-const updateProduct = async (req, res, next) => {
+const updateMemberShip = async (req, res, next) => {
   try {
-    const result = await membershipService.updateProduct(req)
+    const result = await membershipService.updateMemberShip(req)
 
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
@@ -47,11 +47,11 @@ const updateProduct = async (req, res, next) => {
   }
 }
 
-const deleteProduct = async (req, res, next) => {
+const deleteMembership = async (req, res, next) => {
   try {
-    const productId = req.params.id
+    const membershipId = req.params.id
 
-    const result = await membershipService.deleteProduct(productId)
+    const result = await membershipService.deleteMembership(membershipId)
 
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
@@ -65,7 +65,7 @@ const deleteProduct = async (req, res, next) => {
 
 export const membershipController = {
   addMembership,
-  updateProduct,
-  deleteProduct,
+  updateMemberShip,
+  deleteMembership,
   getListMembership,
 }

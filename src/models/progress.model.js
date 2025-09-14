@@ -6,7 +6,7 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '../utils/validators.js'
 const PROGRESS_COLLECTION_NAME = 'progress'
 const PROGRESS_COLLECTION_SCHEMA = Joi.object({
   userId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  measurementDate: Joi.date().iso().required(),
+  measurementDate: Joi.string().isoDate().allow('').default(''),
   weight: Joi.number().min(1).precision(2).required(),
   bodyFat: Joi.number().min(1).precision(2).required(),
   muscleMass: Joi.number().min(1).precision(2).required(),

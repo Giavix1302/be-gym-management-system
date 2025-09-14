@@ -9,21 +9,22 @@ const addMembership = async (req) => {
     const image = req.file
     const { imgUrl, ...rest } = req.body
 
-    const product = {
+    const membershipToAdd = {
       ...rest,
+      features: JSON.parse(req.body.features),
       bannerURL: image.path,
     }
-    console.log('🚀 ~ addMembership ~ product:', product)
+    console.log('🚀 ~ addMembership ~ membershipToAdd:', membershipToAdd)
 
     // create membership
-    const result = await membershipModel.createNew(product)
+    const result = await membershipModel.createNew(membershipToAdd)
 
     // Get the newly created membership
-    const membership = await membershipModel.getDetail(result.insertedId)
+    const membership = await membershipModel.getDetailById(result.insertedId)
     return {
       success: true,
       message: 'Membership created successfully',
-      membership: sanitize(membership),
+      membership: membership,
     }
   } catch (error) {
     throw new Error(error)
@@ -40,54 +41,57 @@ const getListMembership = async () => {
     return {
       success: true,
       message: 'Get list membership successfully',
-      memberships: arr.map((ar) => sanitize(ar)),
+      memberships: arr,
     }
   } catch (error) {
     throw new Error(error)
   }
 }
 
-const updateProduct = async (req) => {
+const updateMemberShip = async (req) => {
   try {
-    // const productId = req.params.id
-    // const image = req.file
+    // transform data
+    const membershipId = req.params.id
+    const banner = req.file
+    const features = req.body.features
 
-    // const updateData = {
-    //   ...req.body,
-    //   ...(image && { imgUrl: image.path }),
-    //   color: JSON.parse(req.body.color),
-    //   updatedAt: Date.now(),
-    // }
+    const updateData = {
+      ...req.body,
+      ...(banner && { bannerURL: banner.path }),
+      ...(features && { features: JSON.parse(req.body.features) }),
+      updatedAt: Date.now(),
+    }
+    console.log('🚀 ~ updateMemberShip ~ updateData:', updateData)
 
-    // const result = await productModel.updateProduct(productId, updateData)
-    // const listProduct = await productModel.getListProduct()
+    const updatedMembership = await membershipModel.updateInfo(membershipId, updateData)
 
-    // if (result === null) {
-    //   return {
-    //     success: false,
-    //     message: "Product doesn't exist.",
-    //   }
-    // }
+    // check membership exist
+    if (updatedMembership === null) {
+      return {
+        success: false,
+        message: 'Product does not exist.',
+      }
+    }
 
     return {
       success: true,
-      message: 'Product updated successfully',
-      // data: [...listProduct],
+      message: 'Membership updated successfully',
+      updatedMembership,
     }
   } catch (error) {
     throw new Error(error)
   }
 }
 
-const deleteProduct = async (productId) => {
+const deleteMembership = async (productId) => {
   try {
     // handle data
-    // const result = await productModel.deleteProduct(productId)
-    // const listProduct = await productModel.getListProduct()
+    const result = await membershipModel.deleteMembership(productId)
+    // const memberships = await membershipModel.getListWithQuantityUser()
     return {
-      // success: result === 1,
-      // message: result === 1 ? 'Delete done!' : 'Delete false!',
-      // data: result === 1 ? [...listProduct] : '',
+      success: result === 1,
+      message: result === 1 ? 'Delete done!' : 'Delete false!',
+      // memberships: result === 1 ? [...memberships] : '',
     }
   } catch (error) {
     throw new Error(error)
@@ -97,4 +101,6 @@ const deleteProduct = async (productId) => {
 export const membershipService = {
   addMembership,
   getListMembership,
+  updateMemberShip,
+  deleteMembership,
 }

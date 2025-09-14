@@ -15,12 +15,12 @@ const EQUIPMENT_COLLECTION_SCHEMA = Joi.object({
     .valid(EQUIPMENT_STATUS.ACTIVE, EQUIPMENT_STATUS.MAINTENANCE, EQUIPMENT_STATUS.BROKEN)
     .required(),
 
-  purchaseDate: Joi.date().iso().required(),
+  purchaseDate: Joi.string().isoDate().allow('').default(''),
 
   maintenanceHistory: Joi.array()
     .items(
       Joi.object({
-        date: Joi.date().iso().required(), // "2025-02-15"
+        date: Joi.string().isoDate().allow('').default(''), // "2025-02-15"
         details: Joi.string().required(), // "Changed running belt"
         technician: Joi.string().required(), // "John Doe"
       })

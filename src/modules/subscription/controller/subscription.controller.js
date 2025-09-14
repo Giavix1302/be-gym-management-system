@@ -15,6 +15,39 @@ const subscribeMembership = async (req, res, next) => {
   }
 }
 
+const getSubDetailByUserId = async (req, res, next) => {
+  try {
+    const userId = req.params.id
+    const result = await subscriptionService.getSubDetailByUserId(userId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.OK).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const deleteSubscription = async (req, res, next) => {
+  try {
+    const subId = req.params.id
+    console.log('🚀 ~ deleteSubscription ~ subId:', subId)
+    const result = await subscriptionService.deleteSubscription(subId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const subscriptionController = {
   subscribeMembership,
+  getSubDetailByUserId,
+  deleteSubscription,
 }

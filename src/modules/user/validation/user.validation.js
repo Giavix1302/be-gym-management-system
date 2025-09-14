@@ -31,7 +31,7 @@ const updateInfo = async (req, res, next) => {
     fullName: Joi.string().min(2).trim().strict(),
     email: Joi.string().email().trim().strict(),
     age: Joi.number().min(1).max(120),
-    dateOfBirth: Joi.date().iso(), // 13/02/2004
+    dateOfBirth: Joi.string().isoDate(), // 13/02/2004
     address: Joi.string().trim().strict(),
     gender: Joi.string().valid(GENDER_TYPE.MALE, GENDER_TYPE.FEMALE, GENDER_TYPE.OTHER),
     role: Joi.string().valid(USER_TYPES.USER, USER_TYPES.PT),

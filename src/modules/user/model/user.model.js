@@ -16,7 +16,7 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   avatar: Joi.string().trim().strict().default(''),
   password: Joi.string().required().trim().strict(),
   age: Joi.number().min(1).max(120).default(null),
-  dateOfBirth: Joi.date().iso().default(null), // 13/02/2004
+  dateOfBirth: Joi.string().isoDate().allow('').default(''), // 13/02/2004
   address: Joi.string().trim().strict().default(''),
   gender: Joi.string().valid(GENDER_TYPE.MALE, GENDER_TYPE.FEMALE, GENDER_TYPE.OTHER).default(null),
 

@@ -1,16 +1,25 @@
 import { StatusCodes } from 'http-status-codes'
-import { userService } from '~/modules/user/service/user.service.js'
-import { accountService } from '~/services/account.service.js'
-import { authService } from '../service/auth.service'
+import { authService } from '../service/auth.service.js'
 
 const login = async (req, res, next) => {
   try {
     const result = await authService.login(req.body)
 
     if (result.success) {
-      res.status(StatusCodes.OK).json(result)
+      // set refresh token vào httpOnly cookie
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // chỉ bật secure khi deploy https
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+      })
+
+      // Xóa refreshToken khỏi response body
+      const { refreshToken, ...safeResult } = result
+
+      return res.status(StatusCodes.OK).json(safeResult)
     } else {
-      res.status(StatusCodes.UNAUTHORIZED).json(result)
+      return res.status(StatusCodes.UNAUTHORIZED).json(result)
     }
   } catch (error) {
     next(error)
@@ -24,7 +33,7 @@ const signup = async (req, res, next) => {
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {
-      res.status(StatusCodes.UNAUTHORIZED).json(result)
+      res.status(StatusCodes.BAD_REQUEST).json(result)
     }
   } catch (error) {
     next(error)
@@ -34,8 +43,13 @@ const signup = async (req, res, next) => {
 const verify = async (req, res, next) => {
   try {
     const result = await authService.verify(req.body)
-
     if (result.success) {
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // chỉ bật secure khi deploy https
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+      })
       res.status(StatusCodes.OK).json(result)
     } else {
       res.status(StatusCodes.UNAUTHORIZED).json(result)
@@ -45,8 +59,51 @@ const verify = async (req, res, next) => {
   }
 }
 
+// Refresh token
+const refreshToken = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies.refreshToken
+    console.log('🚀 ~ refreshToken ~ token:', refreshToken)
+    if (!refreshToken) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'No refresh token' })
+    }
+
+    const result = await authService.refresh(refreshToken)
+
+    if (result.success) {
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        accessToken: result.accessToken,
+      })
+    } else {
+      return res.status(StatusCodes.UNAUTHORIZED).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const logout = async (req, res, next) => {
+  try {
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // chỉ bật khi https
+      sameSite: 'strict',
+    })
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Logged out successfully',
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const authController = {
   login,
   signup,
   verify,
+  refreshToken,
+  logout,
 }

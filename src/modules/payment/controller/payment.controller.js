@@ -21,9 +21,9 @@ const vnpReturn = async (req, res) => {
     const result = await paymentService.vnpReturn(req.query)
 
     if (result.success) {
-      res.status(StatusCodes.OK).json(result)
+      res.redirect(result.url)
     } else {
-      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+      res.redirect(result.url)
     }
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message })

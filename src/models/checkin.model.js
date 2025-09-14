@@ -8,8 +8,8 @@ const CHECKIN_COLLECTION_NAME = 'checkins'
 const CHECKIN_COLLECTION_SCHEMA = Joi.object({
   userId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  checkinTime: Joi.date().iso().required(),
-  checkoutTime: Joi.date().iso().required(),
+  checkinTime: Joi.string().isoDate().allow('').default(''),
+  checkoutTime: Joi.string().isoDate().allow('').default(''),
   method: Joi.string().valid(CHECKIN_METHOD.CARD, CHECKIN_METHOD.FACE),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),

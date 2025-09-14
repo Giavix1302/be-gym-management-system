@@ -1,57 +1,81 @@
 import { sendOtpService, verifyOtp } from '~/utils/twilio.js'
-import { env } from '~/config/environment.config.js'
-
 import { handleHashedPassword, isMatch } from '~/utils/bcrypt.js'
-import { signToken } from '~/utils/jwt.js'
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from '~/utils/jwt.js'
 import { saveUserTemp, getUserTemp } from '~/utils/redis.js'
-import { userModel } from '~/modules/user/model/user.model'
-import { sanitize } from '~/utils/utils'
+import { userModel } from '~/modules/user/model/user.model.js'
+import { sanitize } from '~/utils/utils.js'
+import { subscriptionModel } from '~/modules/subscription/model/subscription.model'
+import { membershipModel } from '~/modules/membership/model/membership.model'
+import { subscriptionService } from '~/modules/subscription/service/subscription.service'
 
 const login = async (reqBody) => {
   try {
-    // handle data
     const { phone, password } = reqBody
-    // Check database
 
-    // check userName
+    // check user in DB
     const account = await userModel.getDetailByPhone(phone)
-    console.log('🚀 ~ login ~ account:', account)
-    if (account === null) {
-      return {
-        success: false,
-        message: 'The account does not exist.',
-      }
+    if (!account) {
+      return { success: false, message: 'The account does not exist.' }
     }
+
     // check password
-    const result = await isMatch(password, account.password)
-    if (!result) {
-      return {
-        success: false,
-        message: 'Incorrect username or password.',
-      }
+    const match = await isMatch(password, account.password)
+    if (!match) {
+      return { success: false, message: 'Incorrect phone or password.' }
     }
 
-    // create token
-    const token = signToken({
-      userId: account._id,
-      role: account.role,
-    })
+    // generate tokens
+    const payload = { userId: account._id, role: account.role }
+    const accessToken = signAccessToken(payload)
+    const refreshToken = signRefreshToken(payload)
 
-    const { _id, phone: userPhone, fullName, dateOfBirth, gender, role, status } = account
+    // ---- get myMembership ----
+    // name membership
+    // durationMonth membership
+    // total check in
+    // startDate subscription
+    // endDate subscription
+    // remainingSessions subscription
+    const subscriptionInfo = await subscriptionService.getSubDetailByUserId(account._id)
+
+    if (!subscriptionInfo.success)
+      return {
+        success: true,
+        message: 'Signed in successfully.',
+        user: sanitize(account),
+        myMembership: {
+          remainingSessions: 0,
+          startDate: '',
+          endDate: '',
+          status: '',
+          name: '',
+          durationMonth: 0,
+          bannerURL: '',
+          totalCheckin: 0,
+        },
+        accessToken,
+        refreshToken, // controller sẽ set cookie
+      }
+
+    const { remainingSessions, startDate, endDate, status, name, durationMonth, bannerURL } =
+      subscriptionInfo.subscription
 
     return {
       success: true,
       message: 'Signed in successfully.',
-      data: {
-        _id,
-        phone: userPhone,
-        fullName,
-        dateOfBirth,
-        gender,
-        role,
+      user: sanitize(account),
+      myMembership: {
+        remainingSessions,
+        startDate,
+        endDate,
         status,
+        name,
+        durationMonth,
+        bannerURL,
+        totalCheckin: 0, // làm sau
       },
-      token,
+      accessToken,
+      refreshToken, // controller sẽ set cookie
     }
   } catch (error) {
     throw new Error(error)
@@ -60,51 +84,35 @@ const login = async (reqBody) => {
 
 const signup = async (reqBody) => {
   try {
-    // get data
-    const { phone } = reqBody
-    // check existing user
+    const { phone, password } = reqBody
     const existingUser = await userModel.getDetailByPhone(phone)
 
-    if (existingUser !== null) {
-      return {
-        success: false,
-        message: 'The user already exists',
-      }
+    if (existingUser) {
+      return { success: false, message: 'The user already exists' }
     }
 
-    // mã hóa mật khẩu
-    const { password } = reqBody
     const hashedPassword = await handleHashedPassword(password)
+    const userData = { ...reqBody, password: hashedPassword }
 
-    const userData = {
-      ...reqBody,
-      password: hashedPassword,
-    }
-    // production
+    // Production → gửi OTP qua Twilio
     if (process.env.NODE_ENV === 'production') {
       const result = await sendOtpService(phone)
       if (!result.success) return { success: false, message: result.message }
 
       await saveUserTemp(phone, userData)
-      return {
-        success: true,
-        message: 'The OTP code has been sent',
-      }
+      return { success: true, message: 'The OTP code has been sent' }
     }
-    // development
+
+    // Dev → bypass OTP
     if (process.env.NODE_ENV === 'development') {
       await saveUserTemp(phone, userData)
-      return {
-        success: true,
-        message: 'The OTP code has been sent',
-      }
+      return { success: true, message: 'The OTP code has been sent' }
     }
   } catch (error) {
     throw new Error(error)
   }
 }
 
-// xác thực thành công -> lưu dữ lieuj vào database -> trả lại fe thông báo thành công
 const verify = async (reqBody) => {
   try {
     const { phone, code } = reqBody
@@ -113,7 +121,31 @@ const verify = async (reqBody) => {
     if (process.env.NODE_ENV === 'production') {
       const result = await verifyOtp(phone, code)
       if (result.success) {
-        // lưu dữ liệu vào database
+        // lấy dữ liệu từ redis
+        let userData = await getUserTemp(phone)
+        console.log('🚀 ~ verify ~ userData:', userData)
+
+        // them trường status
+        userData = {
+          ...userData,
+          status: 'inactive',
+        }
+        // tạo user và lấy dữ liệu user mới tạo
+        const result = await userModel.createNew(userData)
+        const user = await userModel.getDetailById(result.insertedId)
+
+        // generate tokens
+        const payload = { userId: user._id, role: user.role }
+        const accessToken = signAccessToken(payload)
+        const refreshToken = signRefreshToken(payload)
+
+        return {
+          success: true,
+          message: 'Account created successfully',
+          user: sanitize(user),
+          accessToken,
+          refreshToken,
+        }
       } else {
         return {
           success: false,
@@ -133,21 +165,21 @@ const verify = async (reqBody) => {
           ...userData,
           status: 'inactive',
         }
-
-        // add dữ liệu vào database
+        // tạo user và lấy dữ liệu user mới tạo
         const result = await userModel.createNew(userData)
         const user = await userModel.getDetailById(result.insertedId)
-        console.log('🚀 ~ verify ~ result:', user)
+
+        // generate tokens
+        const payload = { userId: user._id, role: user.role }
+        const accessToken = signAccessToken(payload)
+        const refreshToken = signRefreshToken(payload)
 
         return {
           success: true,
           message: 'Account created successfully',
           user: sanitize(user),
-        }
-      } else {
-        return {
-          success: false,
-          message: 'Invalid code',
+          accessToken,
+          refreshToken,
         }
       }
     }
@@ -156,8 +188,22 @@ const verify = async (reqBody) => {
   }
 }
 
+const refresh = async (refreshToken) => {
+  try {
+    const decoded = verifyRefreshToken(refreshToken)
+
+    const payload = { userId: decoded.userId, role: decoded.role }
+    const accessToken = signAccessToken(payload)
+
+    return { success: true, accessToken }
+  } catch (error) {
+    return { success: false, message: 'Invalid or expired refresh token' }
+  }
+}
+
 export const authService = {
   login,
   signup,
   verify,
+  refresh,
 }

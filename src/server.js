@@ -1,6 +1,7 @@
 import express from 'express'
 import dotenv from 'dotenv'
 import corsConfig from './config/cors.config.js'
+import cookieParser from 'cookie-parser'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { APIs_V1 } from './routers/v1/index.js'
 import { CONNECT_DB } from './config/mongodb.config.js'
@@ -18,6 +19,9 @@ const START_APP = () => {
 
   app.use(corsConfig)
 
+  app.use(cookieParser())
+
+  // router
   app.use('/v1', APIs_V1)
 
   // Route mặc định

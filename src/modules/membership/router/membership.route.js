@@ -1,7 +1,7 @@
 import express from 'express'
 import { membershipController } from '../controller/membership.controller'
-import { membershipValidation } from '../validation/membership.validation'
 import { upload } from '~/config/cloudinary.config'
+import { authMiddleware } from '~/middlewares/auth.middleware'
 
 const Router = express.Router()
 
@@ -10,7 +10,7 @@ Router.route('/')
   .get(membershipController.getListMembership)
 
 Router.route('/:id')
-// .put(cartValidation.updateQuantity, cartController.updateQuantity) //  update quantity
-// .delete(cartController.deleteCartDetail) // delete cart
+  .put(authMiddleware, upload.single('banner'), membershipController.updateMemberShip)
+  .delete(authMiddleware, membershipController.deleteMembership)
 
 export const memberRoute = Router

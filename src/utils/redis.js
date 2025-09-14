@@ -31,4 +31,19 @@ export const getUserTemp = async (phone) => {
   return data ? JSON.parse(data) : null
 }
 
+export const saveLinkPaymentTemp = async (subId, data) => {
+  await redisCloud.set(`user:${subId}`, JSON.stringify(data), {
+    EX: 10 * 60,
+  })
+}
+
+export const getLinkPaymentTemp = async (subId) => {
+  const data = await redisCloud.get(`user:${subId}`)
+  return data ? JSON.parse(data) : null
+}
+
+export const deleteLinkPaymentTemp = async (subId) => {
+  await redisCloud.del(`user:${subId}`)
+}
+
 export default redisCloud

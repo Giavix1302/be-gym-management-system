@@ -24,3 +24,56 @@ export const convertVnpayDateToISO = (vnp_PayDate) => {
 
   return date.toISOString() // Trả về ISO 8601
 }
+
+export function calculateEndDate(startDateISO, monthsToAdd) {
+  const startDate = new Date(startDateISO)
+
+  // Thêm số tháng
+  const endDate = new Date(startDate)
+  endDate.setMonth(endDate.getMonth() + monthsToAdd)
+
+  // Trả về theo chuẩn ISO
+  return endDate.toISOString()
+}
+
+export function countRemainingDays(endISO) {
+  const now = new Date()
+  const end = new Date(endISO)
+
+  const diffMs = end.getTime() - now.getTime()
+
+  if (diffMs <= 0) return 0
+
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
+
+export function calculateDiscountedPrice(originalPrice, discountPercent) {
+  if (discountPercent < 0 || discountPercent > 100) {
+    throw new Error('Discount must be between 0 and 100')
+  }
+
+  const discountAmount = (originalPrice * discountPercent) / 100
+  const finalPrice = originalPrice - discountAmount
+
+  return {
+    originalPrice,
+    discountPercent,
+    discountAmount,
+    finalPrice,
+  }
+}
+
+export const createRedirectUrl = (paymentData, baseUrl, service) => {
+  const params = new URLSearchParams()
+
+  // Thêm tham số service đầu tiên
+  params.append('service', service)
+
+  // Thêm các tham số từ paymentData vào URLSearchParams
+  Object.entries(paymentData).forEach(([key, value]) => {
+    params.append(key, value)
+  })
+
+  // Nối query string vào baseUrl
+  return `${baseUrl}${params.toString()}`
+}

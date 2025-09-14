@@ -3,6 +3,9 @@ export const env = {
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
 
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN,
+
   MONGODB_URL: process.env.MONGODB_URL,
   DATABASE_NAME: process.env.DATABASE_NAME,
 
@@ -24,4 +27,6 @@ export const env = {
 
   VNPAY_VNP_TMNCODE: process.env.VNPAY_VNP_TMNCODE,
   VNPAY_VNP_HASHSECRET: process.env.VNPAY_VNP_HASHSECRET,
+
+  FE_URL: process.env.FE_URL,
 }

@@ -7,8 +7,8 @@ const CLASS_COLLECTION_NAME = 'classes'
 const CLASS_COLLECTION_SCHEMA = Joi.object({
   locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   trainerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  startDate: Joi.date().iso().required(),
-  endDate: Joi.date().iso().required(),
+  startDate: Joi.string().isoDate().allow('').default(''),
+  endDate: Joi.string().isoDate().allow('').default(''),
   capacity: Joi.number().min(1).required(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),

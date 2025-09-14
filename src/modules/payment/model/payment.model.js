@@ -10,7 +10,7 @@ const PAYMENT_COLLECTION_SCHEMA = Joi.object({
   referenceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   paymentType: Joi.string().valid(PAYMENT_TYPE.MEMBERSHIP, PAYMENT_TYPE.BOOKING),
   amount: Joi.number().min(1).required(),
-  paymentDate: Joi.date().iso().required(),
+  paymentDate: Joi.string().isoDate().allow('').default(''),
   paymentMethod: Joi.string().valid(
     PAYMENT_METHOD.CASH,
     PAYMENT_METHOD.BANK,

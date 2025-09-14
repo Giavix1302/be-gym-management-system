@@ -9,7 +9,7 @@ const BOOKING_COLLECTION_SCHEMA = Joi.object({
   userId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   trainerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   classId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  scheduleDate: Joi.date().iso().required(),
+  scheduleDate: Joi.string().isoDate().allow('').default(''),
   status: Joi.string().valid(
     BOOKING_STATUS.BOOKING,
     BOOKING_STATUS.COMPLETED,
