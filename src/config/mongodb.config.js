@@ -3,6 +3,7 @@ import { env } from './environment.config.js'
 import { subscriptionModel } from '~/modules/subscription/model/subscription.model.js'
 
 let gmsDatabaseInstance = null
+console.log('>>>>>>>>>>> env mongodb:', env.MONGODB_URL)
 
 const mongoClientInstance = new MongoClient(env.MONGODB_URL, {
   serverApi: {
@@ -11,8 +12,6 @@ const mongoClientInstance = new MongoClient(env.MONGODB_URL, {
     deprecationErrors: true,
   },
 })
-
-console.log('>>>>>>>>>>> env mongodb:', env.MONGODB_URL)
 
 export const CONNECT_DB = async () => {
   await mongoClientInstance.connect()
