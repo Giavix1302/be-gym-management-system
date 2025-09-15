@@ -29,4 +29,5 @@ export const env = {
   VNPAY_VNP_HASHSECRET: process.env.VNPAY_VNP_HASHSECRET,
 
   FE_URL: process.env.FE_URL,
+  BE_URL: process.env.BE_URL,
 }

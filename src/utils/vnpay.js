@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 import { VNPay, ProductCode, VnpLocale, dateFormat } from 'vnpay'
 import { env } from '~/config/environment.config'
 
@@ -22,7 +23,7 @@ export const createPaymentURL = (subId, price, name) => {
     vnp_TxnRef: subId,
     vnp_OrderInfo: 'Thanh toán ' + name + ' mã: ' + subId,
     vnp_OrderType: ProductCode.Other,
-    vnp_ReturnUrl: 'http://localhost:3000/v1/payments/vnpay-return',
+    vnp_ReturnUrl: `${env.BE_URL}/v1/payments/vnpay-return`,
     vnp_Locale: VnpLocale.VN, // 'vn' hoặc 'en'
     vnp_CreateDate: dateFormat(new Date()), // tùy chọn, mặc định là thời gian hiện tại
     vnp_ExpireDate: dateFormat(tomorrow), // tùy chọn
