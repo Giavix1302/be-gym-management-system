@@ -1,7 +1,7 @@
 import cors from 'cors'
 import { env } from './environment.config.js'
 
-const ENV = env.NODE_ENV || 'development'
+const ENV = process.env.NODE_ENV || 'development'
 
 console.log('🚀 ~ ENV:', ENV)
 
