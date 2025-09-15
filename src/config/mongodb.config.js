@@ -12,6 +12,8 @@ const mongoClientInstance = new MongoClient(env.MONGODB_URL, {
   },
 })
 
+console.log('>>>>>>>>>>> env mongodb:', env.MONGODB_URL)
+
 export const CONNECT_DB = async () => {
   await mongoClientInstance.connect()
   gmsDatabaseInstance = mongoClientInstance.db(env.DATABASE_NAME)
