@@ -60,3 +60,16 @@ export const PAYMENT_STATUS = {
   PAID: 'paid',
   UNPAID: 'unpaid',
 }
+
+export const APPROVED_TYPE = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+}
+
+export const SPECIALIZATION_TYPE = {
+  GYM: 'gym',
+  BOXING: 'boxing',
+  YOGA: 'yoga',
+  DANCE: 'dance',
+}

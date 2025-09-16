@@ -77,3 +77,13 @@ export const createRedirectUrl = (paymentData, baseUrl, service) => {
   // Nối query string vào baseUrl
   return `${baseUrl}${params.toString()}`
 }
+
+export function updateImages(imageURL, imageFile, imageURLDatabase) {
+  // finalImage = giữ lại (imageURL) + thêm mới (imageFile)
+  const finalImage = [...imageURL, ...imageFile]
+
+  // removeImage = những ảnh trong DB nhưng không có trong final
+  const removeImage = imageURLDatabase.filter((img) => !finalImage.includes(img))
+
+  return { finalImage, removeImage }
+}

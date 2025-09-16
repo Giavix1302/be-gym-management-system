@@ -1,14 +1,17 @@
 import express from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { userRoute } from '~/modules/user/router/user.route.js'
-import { cartRoute } from './cart.route.js'
-import { productRoute } from './product.route.js'
 import { authRoute } from '~/modules/auth/router/auth.route.js'
-
 import { memberRoute } from '~/modules/membership/router/membership.route.js'
 import { paymentRoute } from '~/modules/payment/router/payment.route.js'
 import { subscriptionRoute } from '~/modules/subscription/router/subscription.route.js'
 import { locationRoute } from '~/modules/location/router/location.route.js'
+import { trainerRoute } from '~/modules/trainer/router/trainer.route.js'
+import { progressRoute } from '~/modules/progress/router/progress.route.js'
+import { equipmentRoute } from '~/modules/equipment/router/equipment.route.js'
+import { roomRoute } from '~/modules/room/router/room.route.js'
+import { classRoute } from '~/modules/class/router/class.route.js'
+import { bookingRoute } from '~/modules/booking/router/booking.route.js'
 
 const Router = express.Router()
 
@@ -23,10 +26,6 @@ Router.use('/auths', authRoute)
 
 Router.use('/users', userRoute)
 
-Router.use('/carts', cartRoute)
-
-Router.use('/products', productRoute)
-
 Router.use('/memberships', memberRoute)
 
 Router.use('/payments', paymentRoute)
@@ -34,5 +33,19 @@ Router.use('/payments', paymentRoute)
 Router.use('/subscriptions', subscriptionRoute)
 
 Router.use('/locations', locationRoute)
+
+Router.use('/trainers', trainerRoute)
+
+Router.use('/progress', progressRoute)
+
+Router.use('/equipments', equipmentRoute)
+
+Router.use('/rooms', roomRoute)
+
+Router.use('/classes', classRoute)
+
+Router.use('/bookings', bookingRoute)
+
+bookingRoute
 
 export const APIs_V1 = Router

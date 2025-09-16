@@ -11,7 +11,7 @@ const MEMBERSHIP_COLLECTION_SCHEMA = Joi.object({
   price: Joi.number().min(1).required(),
   discount: Joi.number().min(0).max(100).required(),
   description: Joi.string().trim().strict().required(),
-  type: Joi.string().valid(MEMBERSHIP_TYPE.GYM, MEMBERSHIP_TYPE.YOGA, MEMBERSHIP_TYPE.BOXING).required(),
+  type: Joi.string().valid(MEMBERSHIP_TYPE.GYM).required(),
   features: Joi.array().items(Joi.string().trim().strict()).default([]),
   bannerURL: Joi.string().trim().strict().required(),
 
