@@ -16,7 +16,7 @@ const TRAINER_COLLECTION_SCHEMA = Joi.object({
       SPECIALIZATION_TYPE.DANCE
     )
     .default(''),
-  bio: Joi.string().required().trim().strict(),
+  bio: Joi.string().trim().default(''),
 
   physiqueImages: Joi.array().items(Joi.string().trim().strict()).required(),
 
@@ -25,6 +25,8 @@ const TRAINER_COLLECTION_SCHEMA = Joi.object({
     .default(APPROVED_TYPE.PENDING),
 
   approvedAt: Joi.string().isoDate().allow('').default(''),
+  experience: Joi.string().trim().strict().default(''),
+  education: Joi.string().trim().strict().default(''),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),

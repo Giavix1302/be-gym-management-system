@@ -78,12 +78,8 @@ export const createRedirectUrl = (paymentData, baseUrl, service) => {
   return `${baseUrl}${params.toString()}`
 }
 
-export function updateImages(imageURL, imageFile, imageURLDatabase) {
-  // finalImage = giữ lại (imageURL) + thêm mới (imageFile)
+export function updateImages(imageURL = [], imageFile = [], imageURLDatabase = []) {
   const finalImage = [...imageURL, ...imageFile]
-
-  // removeImage = những ảnh trong DB nhưng không có trong final
   const removeImage = imageURLDatabase.filter((img) => !finalImage.includes(img))
-
   return { finalImage, removeImage }
 }

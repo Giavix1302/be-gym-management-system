@@ -10,9 +10,8 @@ const createNew = async (req) => {
     const physiqueImages = imageFiles.map((file) => file.path) // lấy ra mảng path
 
     const dataToCreate = {
+      ...req.body,
       userId: req.body.userId,
-      specialization: req.body.specialization,
-      bio: req.body.bio,
       physiqueImages, // mảng link cloudinary
     }
 
@@ -62,50 +61,118 @@ const getDetailByUserId = async (userId) => {
 
 const updateInfo = async (userId, req) => {
   try {
-    // check existing user
-    const existingTrainer = await trainerModel.getDetailByUserId(userId)
-    if (!existingTrainer) return { success: false, message: 'Trainer information not updated.' }
+    const body = req.body || {}
 
-    const { physiqueImages: physiqueImagesInDatabase, _id: trainerId } = existingTrainer
-    //
-    const imageFiles = req.files || [] // luôn là array
+    // Tách physiqueImages (links cũ muốn giữ) và các field khác
+    const { physiqueImages: physiqueImagesKeep, ...rest } = body
+
+    // File upload mới từ form-data (tên field: physiqueImagesNew)
+    const imageFiles = req.files || []
     const physiqueImagesNew = imageFiles.map((file) => file.path)
 
-    const { physiqueImages: physiqueImagesHoldRaw, ...rest } = req.body
-    const physiqueImagesHold = Array.isArray(physiqueImagesHoldRaw)
-      ? physiqueImagesHoldRaw
-      : physiqueImagesHoldRaw
-      ? [physiqueImagesHoldRaw]
-      : []
+    console.log('🚀 ~ updateInfo ~ physiqueImagesKeep:', physiqueImagesKeep)
+    console.log('🚀 ~ updateInfo ~ physiqueImagesNew:', physiqueImagesNew)
 
-    let imageUpdated
-    if (physiqueImagesNew.length !== 0) {
-      imageUpdated = updateImages(physiqueImagesHold, physiqueImagesNew, physiqueImagesInDatabase)
+    // Kiểm tra existing trainer
+    const existingTrainer = await trainerModel.getDetailByUserId(userId)
+
+    if (!existingTrainer) {
+      // Tạo mới nếu chưa có trainer info
+      const dataToCreate = {
+        ...rest,
+        userId,
+        physiqueImages: physiqueImagesNew, // Chỉ có ảnh mới
+      }
+
+      const result = await trainerModel.createNew(dataToCreate)
+      const getNewTrainer = await trainerModel.getDetailById(result.insertedId)
+
+      return {
+        success: true,
+        message: 'trainer info created successfully',
+        trainer: {
+          ...sanitize(getNewTrainer),
+        },
+      }
     }
 
-    const updateData = {
+    // Lấy thông tin hiện tại
+    const { physiqueImages: physiqueImagesInDatabase, _id: trainerId } = existingTrainer
+
+    // Chuẩn hóa dữ liệu đầu vào
+    const physiqueImagesHold = Array.isArray(physiqueImagesKeep)
+      ? physiqueImagesKeep
+      : physiqueImagesKeep
+      ? [physiqueImagesKeep]
+      : []
+
+    let updateData = {
       ...rest,
-      ...(physiqueImagesNew.length !== 0
-        ? { physiqueImages: imageUpdated.finalImage }
-        : { physiqueImages: physiqueImagesHold }),
       updatedAt: Date.now(),
     }
 
-    const result = await trainerModel.updateInfo(trainerId, updateData)
-    console.log('🚀 ~ updateInfo ~ result:', result)
+    let imageUpdated = null
 
-    // xóa các hình trên cloundinay
+    // Kiểm tra xem có phải trường hợp "Giữ nguyên" không
+    const isKeepAll =
+      physiqueImagesHold.length === physiqueImagesInDatabase.length &&
+      physiqueImagesHold.every((img) => physiqueImagesInDatabase.includes(img)) &&
+      physiqueImagesNew.length === 0
+
+    if (isKeepAll) {
+      /**
+       * CASE: Giữ nguyên - physiqueImagesHold giống hệt physiqueImagesInDatabase
+       * Không cập nhật field physiqueImages để tránh trigger không cần thiết
+       */
+      console.log('📸 Keep all current images - no changes needed')
+    } else {
+      /**
+       * CASE: Có thay đổi về ảnh - sử dụng helper function updateImages
+       * - physiqueImagesHold: ảnh cũ muốn giữ lại
+       * - physiqueImagesNew: ảnh mới upload
+       * - physiqueImagesInDatabase: ảnh hiện tại trong DB
+       */
+      imageUpdated = updateImages(
+        physiqueImagesHold, // imageURL: ảnh cũ giữ lại
+        physiqueImagesNew, // imageFile: ảnh mới
+        physiqueImagesInDatabase // imageURLDatabase: ảnh trong DB
+      )
+
+      updateData.physiqueImages = imageUpdated.finalImage
+
+      console.log('📸 Image update summary:')
+      console.log(`  - Current in DB: ${physiqueImagesInDatabase.length} images`)
+      console.log(`  - Keep from old: ${physiqueImagesHold.length} images`)
+      console.log(`  - New uploaded: ${physiqueImagesNew.length} images`)
+      console.log(`  - Final result: ${imageUpdated.finalImage.length} images`)
+      console.log(`  - To remove: ${imageUpdated.removeImage.length} images`)
+    }
+
+    // Cập nhật trainer info
+    const result = await trainerModel.updateInfo(trainerId, updateData)
+    console.log('🚀 ~ updateInfo ~ updateData:', updateData)
+
+    // Xóa ảnh cũ trên Cloudinary nếu cần
     if (imageUpdated && imageUpdated.removeImage.length > 0) {
+      console.log('🗑️ Deleting removed images from Cloudinary:', imageUpdated.removeImage)
       for (const img of imageUpdated.removeImage) {
-        await deleteImageByUrl(img)
+        try {
+          await deleteImageByUrl(img)
+          console.log(`✅ Deleted: ${img}`)
+        } catch (error) {
+          console.error(`❌ Failed to delete: ${img}`, error)
+        }
       }
     }
-    // update user
+
+    // Lấy trainer info sau khi update để trả về
+    const updatedTrainer = await trainerModel.getDetailById(trainerId)
+
     return {
       success: true,
       message: 'trainer info updated successfully',
       trainer: {
-        ...sanitize(result),
+        ...sanitize(updatedTrainer),
       },
     }
   } catch (error) {

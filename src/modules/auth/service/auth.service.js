@@ -4,9 +4,8 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '~/utils/j
 import { saveUserTemp, getUserTemp } from '~/utils/redis.js'
 import { userModel } from '~/modules/user/model/user.model.js'
 import { sanitize } from '~/utils/utils.js'
-import { subscriptionModel } from '~/modules/subscription/model/subscription.model'
-import { membershipModel } from '~/modules/membership/model/membership.model'
 import { subscriptionService } from '~/modules/subscription/service/subscription.service'
+import { trainerService } from '~/modules/trainer/service/trainer.service'
 
 const login = async (reqBody) => {
   try {
@@ -36,46 +35,75 @@ const login = async (reqBody) => {
     // startDate subscription
     // endDate subscription
     // remainingSessions subscription
-    const subscriptionInfo = await subscriptionService.getSubDetailByUserId(account._id)
 
-    if (!subscriptionInfo.success)
+    // user
+    if (account.role === 'user') {
+      const subscriptionInfo = await subscriptionService.getSubDetailByUserId(account._id)
+
+      if (!subscriptionInfo.success)
+        return {
+          success: true,
+          message: 'Signed in successfully.',
+          user: sanitize(account),
+          myMembership: {
+            remainingSessions: 0,
+            startDate: '',
+            endDate: '',
+            status: '',
+            name: '',
+            durationMonth: 0,
+            bannerURL: '',
+            totalCheckin: 0,
+          },
+          accessToken,
+          refreshToken, // controller sẽ set cookie
+        }
+
+      const { remainingSessions, startDate, endDate, status, name, durationMonth, bannerURL } =
+        subscriptionInfo.subscription
+
       return {
         success: true,
         message: 'Signed in successfully.',
         user: sanitize(account),
         myMembership: {
-          remainingSessions: 0,
-          startDate: '',
-          endDate: '',
-          status: '',
-          name: '',
-          durationMonth: 0,
-          bannerURL: '',
-          totalCheckin: 0,
+          remainingSessions,
+          startDate,
+          endDate,
+          status,
+          name,
+          durationMonth,
+          bannerURL,
+          totalCheckin: 0, // làm sau
         },
         accessToken,
         refreshToken, // controller sẽ set cookie
       }
+    }
 
-    const { remainingSessions, startDate, endDate, status, name, durationMonth, bannerURL } =
-      subscriptionInfo.subscription
+    if (account.role === 'pt') {
+      const trainerInfo = await trainerService.getDetailByUserId(account._id)
 
-    return {
-      success: true,
-      message: 'Signed in successfully.',
-      user: sanitize(account),
-      myMembership: {
-        remainingSessions,
-        startDate,
-        endDate,
-        status,
-        name,
-        durationMonth,
-        bannerURL,
-        totalCheckin: 0, // làm sau
-      },
-      accessToken,
-      refreshToken, // controller sẽ set cookie
+      return {
+        success: true,
+        message: 'Signed in successfully.',
+        user: sanitize(account),
+        trainer: {
+          ...trainerInfo.trainer,
+        },
+        accessToken,
+        refreshToken, // controller sẽ set cookie
+      }
+    }
+
+    if (account.role === 'admin') {
+      return {
+        success: true,
+        message: 'Signed in successfully.',
+        user: sanitize(account),
+        accessToken,
+        refreshToken, // controller sẽ set cookie
+      }
     }
   } catch (error) {
     throw new Error(error)
@@ -117,7 +145,6 @@ const verify = async (reqBody) => {
   try {
     const { phone, code } = reqBody
     // production
-    // chưa fix gửi token và dữ liệu cho FE
     if (process.env.NODE_ENV === 'production') {
       const result = await verifyOtp(phone, code)
       if (result.success) {
@@ -180,6 +207,11 @@ const verify = async (reqBody) => {
           user: sanitize(user),
           accessToken,
           refreshToken,
+        }
+      } else {
+        return {
+          success: false,
+          message: 'Invalid OTP code. Please try again.',
         }
       }
     }

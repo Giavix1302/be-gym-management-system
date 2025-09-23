@@ -6,6 +6,7 @@ import { errorHandler } from './middlewares/errorHandler.js'
 import { APIs_V1 } from './routers/v1/index.js'
 import { CONNECT_DB } from './config/mongodb.config.js'
 import { initRedis } from '~/utils/redis.js'
+import { env } from './config/environment.config.js'
 
 const START_APP = () => {
   // Đọc biến môi trường từ file .env
@@ -36,6 +37,7 @@ const START_APP = () => {
 
   // Khởi động server
   app.listen(PORT, () => {
+    console.log('----------------', env.BE_URL)
     if (process.env.NODE_ENV === 'development') {
       console.log(`🛠️ Dev server is running at http://localhost:${PORT}`)
     } else if (process.env.NODE_ENV === 'production') {

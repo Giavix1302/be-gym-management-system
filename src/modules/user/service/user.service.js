@@ -41,8 +41,9 @@ const updateInfo = async (userId, data) => {
     // update user
     return {
       success: true,
-      data: {
-        info: sanitize(result),
+      message: 'User updated successfully',
+      user: {
+        ...sanitize(result),
       },
     }
   } catch (error) {
