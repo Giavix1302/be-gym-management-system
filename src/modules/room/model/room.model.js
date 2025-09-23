@@ -6,9 +6,7 @@ import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators.js'
 const ROOM_COLLECTION_NAME = 'rooms'
 const ROOM_COLLECTION_SCHEMA = Joi.object({
   locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  trainerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  startDate: Joi.string().isoDate().allow('').default(''),
-  endDate: Joi.string().isoDate().allow('').default(''),
+  name: Joi.string().trim().strict().default(''),
   capacity: Joi.number().min(1).required(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),

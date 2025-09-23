@@ -12,6 +12,8 @@ import { equipmentRoute } from '~/modules/equipment/router/equipment.route.js'
 import { roomRoute } from '~/modules/room/router/room.route.js'
 import { classRoute } from '~/modules/class/router/class.route.js'
 import { bookingRoute } from '~/modules/booking/router/booking.route.js'
+import { reviewRoute } from '~/modules/review/router/review.route'
+import { scheduleRoute } from '~/modules/schedule/router/schedule.route'
 
 const Router = express.Router()
 
@@ -46,6 +48,8 @@ Router.use('/classes', classRoute)
 
 Router.use('/bookings', bookingRoute)
 
-bookingRoute
+Router.use('/reviews', reviewRoute)
+
+Router.use('/schedules', scheduleRoute)
 
 export const APIs_V1 = Router

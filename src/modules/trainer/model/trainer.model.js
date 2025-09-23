@@ -27,6 +27,7 @@ const TRAINER_COLLECTION_SCHEMA = Joi.object({
   approvedAt: Joi.string().isoDate().allow('').default(''),
   experience: Joi.string().trim().strict().default(''),
   education: Joi.string().trim().strict().default(''),
+  pricePerSession: Joi.number().min(0).default(0),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),

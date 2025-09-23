@@ -7,9 +7,8 @@ import { BOOKING_STATUS } from '~/utils/constants.js'
 const BOOKING_COLLECTION_NAME = 'bookings'
 const BOOKING_COLLECTION_SCHEMA = Joi.object({
   userId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  trainerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  scheduleId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  scheduleDate: Joi.string().isoDate().allow('').default(''),
   status: Joi.string().valid(
     BOOKING_STATUS.BOOKING,
     BOOKING_STATUS.COMPLETED,
@@ -33,7 +32,15 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data, { abortEarly: false })
-    const createdUser = await GET_DB().collection(BOOKING_COLLECTION_NAME).insertOne(validData)
+
+    const newDataToAdd = {
+      ...validData,
+      userId: new ObjectId(String(validData.userId)),
+      scheduleId: new ObjectId(String(validData.scheduleId)),
+      locationId: new ObjectId(String(validData.locationId)),
+    }
+
+    const createdUser = await GET_DB().collection(BOOKING_COLLECTION_NAME).insertOne(newDataToAdd)
     return createdUser
   } catch (error) {
     throw new Error(error)
