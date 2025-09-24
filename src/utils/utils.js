@@ -1,8 +1,19 @@
-export const sanitize = (data) => {
+export const sanitize = (data, fieldsToRemove = []) => {
   if (!data) return null
 
-  // loại bỏ các field không mong muốn
-  const { createdAt, updatedAt, _destroy, password, ...safeData } = data
+  // mặc định luôn bỏ mấy field nhạy cảm
+  const defaultFields = ['createdAt', 'updatedAt', '_destroy', 'password']
+
+  // gộp cả default và custom
+  const fields = new Set([...defaultFields, ...fieldsToRemove])
+
+  // loại bỏ field không mong muốn
+  const safeData = Object.keys(data).reduce((acc, key) => {
+    if (!fields.has(key)) {
+      acc[key] = data[key]
+    }
+    return acc
+  }, {})
 
   return safeData
 }

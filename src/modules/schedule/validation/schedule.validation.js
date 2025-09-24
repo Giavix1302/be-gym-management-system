@@ -1,21 +1,13 @@
 import Joi from 'joi'
 import { GENDER_TYPE, STATUS_TYPE, USER_TYPES } from '~/utils/constants.js'
 import { StatusCodes } from 'http-status-codes'
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
 const createNew = async (req, res, next) => {
   const correctValidation = Joi.object({
-    name: Joi.string().required().min(2).trim().strict(),
-    address: Joi.object({
-      street: Joi.string().required(),
-      ward: Joi.string().required(),
-      province: Joi.string().required(),
-    }),
-    phone: Joi.string()
-      .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
-      .messages({
-        'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
-      })
-      .required(),
+    trainerId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    startTime: Joi.string().isoDate().required(),
+    endTime: Joi.string().isoDate().required(),
   })
 
   try {

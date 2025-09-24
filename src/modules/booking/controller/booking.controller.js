@@ -1,38 +1,69 @@
 import { StatusCodes } from 'http-status-codes'
 import { bookingService } from '../service/booking.service'
 
-const createNew = async (req, res, next) => {
+const createBooking = async (req, res, next) => {
   try {
-    const result = await bookingService.createNew(req)
+    const result = await bookingService.createBooking(req.body)
 
     if (result.success) {
-      res.status(StatusCodes.OK).json(result)
+      res.status(StatusCodes.CREATED).json(result)
     } else {
-      res.status(StatusCodes.BAD_REQUEST).json(result)
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
   } catch (error) {
     next(error)
   }
 }
 
-const getDetail = async (req, res, next) => {
+const getBookingById = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const user = await bookingService.getDetail(userId)
-    res.status(StatusCodes.OK).json(user)
+    const bookingId = req.params.id
+    const result = await bookingService.getBookingById(bookingId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.NOT_FOUND).json(result)
+    }
   } catch (error) {
     next(error)
   }
 }
 
-const updateInfo = async (req, res, next) => {
+const getBookingsByUserId = async (req, res, next) => {
   try {
-    const bookingId = req.params.id
-    const result = await bookingService.updateInfo(bookingId, req.body)
+    const userId = req.params.userId
+    const result = await bookingService.getBookingsByUserId(userId)
+
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {
       res.status(StatusCodes.NOT_FOUND).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getAllBookings = async (req, res, next) => {
+  try {
+    const result = await bookingService.getAllBookings()
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) {
+    next(error)
+  }
+}
+
+const updateBooking = async (req, res, next) => {
+  try {
+    const bookingId = req.params.id
+    const result = await bookingService.updateBooking(bookingId, req.body)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
   } catch (error) {
     next(error)
@@ -41,12 +72,44 @@ const updateInfo = async (req, res, next) => {
 
 const deleteBooking = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const result = await bookingService.deleteBooking(userId)
+    const bookingId = req.params.id
+    console.log('🚀 ~ deleteBooking ~ bookingId:', bookingId)
+    const result = await bookingService.deleteBooking(bookingId)
+
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {
-      res.status(StatusCodes.NOT_FOUND).json(result)
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const softDeleteBooking = async (req, res, next) => {
+  try {
+    const bookingId = req.params.id
+    const result = await bookingService.softDeleteBooking(bookingId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const cancelBooking = async (req, res, next) => {
+  try {
+    const bookingId = req.params.id
+    const result = await bookingService.cancelBooking(bookingId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
   } catch (error) {
     next(error)
@@ -54,8 +117,12 @@ const deleteBooking = async (req, res, next) => {
 }
 
 export const bookingController = {
-  createNew,
-  getDetail,
-  updateInfo,
+  createBooking,
+  getBookingById,
+  getBookingsByUserId,
+  getAllBookings,
+  updateBooking,
   deleteBooking,
+  softDeleteBooking,
+  cancelBooking,
 }

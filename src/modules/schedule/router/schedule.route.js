@@ -5,11 +5,13 @@ import { scheduleValidation } from '../validation/schedule.validation'
 
 const Router = express.Router()
 
-Router.route('/').post(upload.array('scheduleImgs', 6), scheduleController.createNew)
+Router.route('/')
+  .post(scheduleValidation.createNew, scheduleController.createNew)
+  .delete(scheduleController.deleteListSchedule)
 
 Router.route('/:id')
-  .get(scheduleController.getDetail)
-  .put(scheduleValidation.updateInfo, scheduleController.updateInfo) // update name, phone and address
+  .get(scheduleController.getListScheduleByTrainerId)
+  .put(scheduleValidation.updateInfo, scheduleController.updateInfo)
   .delete(scheduleController.deleteSchedule)
 
 export const scheduleRoute = Router

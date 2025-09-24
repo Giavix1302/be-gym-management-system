@@ -1,21 +1,15 @@
 import Joi from 'joi'
-import { GENDER_TYPE, STATUS_TYPE, USER_TYPES } from '~/utils/constants.js'
 import { StatusCodes } from 'http-status-codes'
+import { BOOKING_STATUS } from '~/utils/constants.js'
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators.js'
 
-const createNew = async (req, res, next) => {
+const createBooking = async (req, res, next) => {
   const correctValidation = Joi.object({
-    name: Joi.string().required().min(2).trim().strict(),
-    address: Joi.object({
-      street: Joi.string().required(),
-      ward: Joi.string().required(),
-      province: Joi.string().required(),
-    }),
-    phone: Joi.string()
-      .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
-      .messages({
-        'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
-      })
-      .required(),
+    userId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    scheduleId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    price: Joi.number().min(0).required(),
+    note: Joi.string().trim().strict().allow('').optional(),
   })
 
   try {
@@ -28,23 +22,37 @@ const createNew = async (req, res, next) => {
   }
 }
 
-const updateInfo = async (req, res, next) => {
+const updateBooking = async (req, res, next) => {
   const correctValidation = Joi.object({
-    name: Joi.string().min(2).trim().strict(),
-    address: Joi.object({
-      street: Joi.string(),
-      ward: Joi.string(),
-      province: Joi.string(),
-    }),
-    phone: Joi.string()
-      .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
-      .messages({
-        'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
-      }),
+    status: Joi.string()
+      .valid(
+        BOOKING_STATUS.BOOKING,
+        BOOKING_STATUS.COMPLETED,
+        BOOKING_STATUS.PENDING,
+        BOOKING_STATUS.CANCELLED
+      )
+      .optional(),
+    price: Joi.number().min(0).optional(),
+    note: Joi.string().trim().strict().allow('').optional(),
   })
 
   try {
     await correctValidation.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    const validationError = new Error(error)
+    validationError.statusCode = StatusCodes.UNPROCESSABLE_ENTITY
+    next(validationError)
+  }
+}
+
+const validateBookingId = async (req, res, next) => {
+  const correctValidation = Joi.object({
+    id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  })
+
+  try {
+    await correctValidation.validateAsync(req.params, { abortEarly: false })
     next()
   } catch (error) {
     const validationError = new Error(error)
@@ -54,6 +62,7 @@ const updateInfo = async (req, res, next) => {
 }
 
 export const bookingValidation = {
-  createNew,
-  updateInfo,
+  createBooking,
+  updateBooking,
+  validateBookingId,
 }

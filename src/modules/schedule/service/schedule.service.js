@@ -1,24 +1,40 @@
+import { trainerModel } from '~/modules/trainer/model/trainer.model'
 import { scheduleModel } from '../model/schedule.model'
 import { sanitize } from '~/utils/utils'
 
 const createNew = async (req) => {
   try {
-    const imageFiles = req.files || [] // luôn là array
-    const images = imageFiles.map((file) => file.path) // lấy ra mảng path
+    const { trainerId, startTime, endTime } = req.body
 
-    // parse address vì form-data chỉ gửi string
-    const address = JSON.parse(req.body.address)
+    const existingTrainer = await trainerModel.getDetailById(trainerId)
+    if (!existingTrainer) return { success: false, message: 'trainer not fould' }
 
-    const newData = {
-      name: req.body.name,
-      phone: req.body.phone,
-      address,
-      images, // mảng link cloudinary
+    // validate startTime < endTime
+    const start = new Date(startTime)
+    const end = new Date(endTime)
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return { success: false, message: 'Invalid startTime or endTime format' }
+    }
+    if (start >= end) {
+      return { success: false, message: 'startTime must be before endTime' }
     }
 
-    console.log('🚀 ~ createNew ~ newData:', newData)
-    const createdSchedule = await scheduleModel.createNew(newData)
-    const getNewSchedule = await scheduleModel.getDetail(createdSchedule.insertedId)
+    // check conflict
+    const conflict = await scheduleModel.checkConflict(trainerId, startTime, endTime)
+    console.log('🚀 ~ createNew ~ conflict:', conflict)
+    if (conflict) {
+      return { success: false, message: 'Schedule conflict detected' }
+    }
+
+    const dataToCreate = {
+      trainerId,
+      startTime,
+      endTime,
+    }
+
+    const createdSchedule = await scheduleModel.createNew(dataToCreate)
+    const getNewSchedule = await scheduleModel.getDetailById(createdSchedule.insertedId)
     return {
       success: true,
       message: 'schedule created successfully',
@@ -31,15 +47,24 @@ const createNew = async (req) => {
   }
 }
 
-const getDetail = async (userId) => {
+const getListScheduleByTrainerId = async (trainerId) => {
   try {
-    const user = await scheduleModel.getDetail(userId)
-    return user
+    const existingTrainer = await trainerModel.getDetailById(trainerId)
+    if (!existingTrainer) return { success: false, message: 'trainer not fould' }
+
+    const listSchedule = await scheduleModel.getListScheduleByTrainerId(trainerId)
+    return {
+      success: true,
+      message: 'List schedule got successfully',
+      trainerId,
+      listSchedule: listSchedule.map((schedule) => sanitize(schedule, ['trainerId'])),
+    }
   } catch (error) {
     throw new Error(error)
   }
 }
 
+// unable
 const updateInfo = async (scheduleId, data) => {
   try {
     // check existing user
@@ -72,7 +97,8 @@ const updateInfo = async (scheduleId, data) => {
 const deleteSchedule = async (scheduleId) => {
   try {
     // tim schedule có tồn tài không
-
+    const existingSchedule = await scheduleModel.getDetailById(scheduleId)
+    if (!existingSchedule) return { success: false, message: 'schedule not fould' }
     // xóa schedule
     const result = await scheduleModel.deleteSchedule(scheduleId)
     return {
@@ -85,9 +111,31 @@ const deleteSchedule = async (scheduleId) => {
   }
 }
 
+const deleteListSchedule = async (listScheduleId) => {
+  try {
+    for (const scheduleId of listScheduleId) {
+      // tìm schedule có tồn tại không
+      const existingSchedule = await scheduleModel.getDetailById(scheduleId)
+      if (!existingSchedule) {
+        return { success: false, message: `Schedule not found: ${scheduleId}` }
+      }
+
+      // xoá schedule
+      await scheduleModel.deleteSchedule(scheduleId)
+    }
+
+    return {
+      success: true,
+      message: 'All schedules deleted successfully',
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
 export const scheduleService = {
   createNew,
-  getDetail,
+  getListScheduleByTrainerId,
   updateInfo,
   deleteSchedule,
+  deleteListSchedule,
 }
