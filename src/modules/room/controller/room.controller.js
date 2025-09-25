@@ -1,34 +1,25 @@
 import { StatusCodes } from 'http-status-codes'
 import { roomService } from '../service/room.service'
 
-const createNew = async (req, res, next) => {
+const createRoom = async (req, res, next) => {
   try {
-    const result = await roomService.createNew(req)
+    const result = await roomService.createRoom(req.body)
 
     if (result.success) {
-      res.status(StatusCodes.OK).json(result)
+      res.status(StatusCodes.CREATED).json(result)
     } else {
-      res.status(StatusCodes.BAD_REQUEST).json(result)
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
   } catch (error) {
     next(error)
   }
 }
 
-const getDetail = async (req, res, next) => {
-  try {
-    const userId = req.params.id
-    const user = await roomService.getDetail(userId)
-    res.status(StatusCodes.OK).json(user)
-  } catch (error) {
-    next(error)
-  }
-}
-
-const updateInfo = async (req, res, next) => {
+const getRoomById = async (req, res, next) => {
   try {
     const roomId = req.params.id
-    const result = await roomService.updateInfo(roomId, req.body)
+    const result = await roomService.getRoomById(roomId)
+
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {
@@ -39,10 +30,91 @@ const updateInfo = async (req, res, next) => {
   }
 }
 
+const getRoomsByLocationId = async (req, res, next) => {
+  try {
+    const locationId = req.params.locationId
+    const result = await roomService.getRoomsByLocationId(locationId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.NOT_FOUND).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getAllRooms = async (req, res, next) => {
+  try {
+    const result = await roomService.getAllRooms()
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) {
+    next(error)
+  }
+}
+
+const updateRoom = async (req, res, next) => {
+  try {
+    const roomId = req.params.id
+    const result = await roomService.updateRoom(roomId, req.body)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 const deleteRoom = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const result = await roomService.deleteroom(userId)
+    const roomId = req.params.id
+    console.log('🚀 ~ deleteRoom ~ roomId:', roomId)
+    const result = await roomService.deleteRoom(roomId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const softDeleteRoom = async (req, res, next) => {
+  try {
+    const roomId = req.params.id
+    const result = await roomService.softDeleteRoom(roomId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getRoomAvailability = async (req, res, next) => {
+  try {
+    const roomId = req.params.id
+    const { date } = req.query // Expected format: YYYY-MM-DD
+
+    if (!date) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Date parameter is required',
+      })
+    }
+
+    const result = await roomService.getRoomAvailability(roomId, date)
+
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {
@@ -54,8 +126,12 @@ const deleteRoom = async (req, res, next) => {
 }
 
 export const roomController = {
-  createNew,
-  getDetail,
-  updateInfo,
+  createRoom,
+  getRoomById,
+  getRoomsByLocationId,
+  getAllRooms,
+  updateRoom,
   deleteRoom,
+  softDeleteRoom,
+  getRoomAvailability,
 }

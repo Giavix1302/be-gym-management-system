@@ -33,14 +33,22 @@ const createNew = async (req) => {
       endTime,
     }
 
-    const createdSchedule = await scheduleModel.createNew(dataToCreate)
-    const getNewSchedule = await scheduleModel.getDetailById(createdSchedule.insertedId)
+    await scheduleModel.createNew(dataToCreate)
+
+    const listSchedule = await scheduleModel.getListScheduleByTrainerId(trainerId)
+
+    const sanitizedList = listSchedule.map((schedule) => {
+      const cleanSchedule = sanitize(schedule, ['trainerId'])
+      return {
+        ...cleanSchedule,
+        title: cleanSchedule.member ? `Lịch đã được đặt bởi ${cleanSchedule.member}` : 'Lịch chưa được đặt',
+      }
+    })
+
     return {
       success: true,
       message: 'schedule created successfully',
-      schedule: {
-        ...sanitize(getNewSchedule),
-      },
+      listSchedule: sanitizedList,
     }
   } catch (error) {
     throw new Error(error)
@@ -50,14 +58,25 @@ const createNew = async (req) => {
 const getListScheduleByTrainerId = async (trainerId) => {
   try {
     const existingTrainer = await trainerModel.getDetailById(trainerId)
-    if (!existingTrainer) return { success: false, message: 'trainer not fould' }
+    if (!existingTrainer) {
+      return { success: false, message: 'trainer not found' }
+    }
 
     const listSchedule = await scheduleModel.getListScheduleByTrainerId(trainerId)
+
+    const sanitizedList = listSchedule.map((schedule) => {
+      const cleanSchedule = sanitize(schedule, ['trainerId'])
+      return {
+        ...cleanSchedule,
+        title: cleanSchedule.member ? `Lịch đã được đặt bởi ${cleanSchedule.member}` : 'Lịch chưa được đặt',
+      }
+    })
+
     return {
       success: true,
       message: 'List schedule got successfully',
       trainerId,
-      listSchedule: listSchedule.map((schedule) => sanitize(schedule, ['trainerId'])),
+      listSchedule: sanitizedList,
     }
   } catch (error) {
     throw new Error(error)

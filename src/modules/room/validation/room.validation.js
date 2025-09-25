@@ -1,21 +1,12 @@
 import Joi from 'joi'
-import { GENDER_TYPE, STATUS_TYPE, USER_TYPES } from '~/utils/constants.js'
 import { StatusCodes } from 'http-status-codes'
+import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators.js'
 
-const createNew = async (req, res, next) => {
+const createRoom = async (req, res, next) => {
   const correctValidation = Joi.object({
-    name: Joi.string().required().min(2).trim().strict(),
-    address: Joi.object({
-      street: Joi.string().required(),
-      ward: Joi.string().required(),
-      province: Joi.string().required(),
-    }),
-    phone: Joi.string()
-      .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
-      .messages({
-        'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
-      })
-      .required(),
+    locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    name: Joi.string().trim().strict().min(1).max(100).required(),
+    capacity: Joi.number().min(1).max(1000).required(),
   })
 
   try {
@@ -28,23 +19,45 @@ const createNew = async (req, res, next) => {
   }
 }
 
-const updateInfo = async (req, res, next) => {
+const updateRoom = async (req, res, next) => {
   const correctValidation = Joi.object({
-    name: Joi.string().min(2).trim().strict(),
-    address: Joi.object({
-      street: Joi.string(),
-      ward: Joi.string(),
-      province: Joi.string(),
-    }),
-    phone: Joi.string()
-      .pattern(/^\+[1-9]\d{1,14}$/) // E.164: +[country code][subscriber number]
-      .messages({
-        'string.pattern.base': 'Phone number must be in E.164 format (e.g., +84901234567).',
-      }),
+    locationId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
+    name: Joi.string().trim().strict().min(1).max(100).optional(),
+    capacity: Joi.number().min(1).max(1000).optional(),
   })
 
   try {
     await correctValidation.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    const validationError = new Error(error)
+    validationError.statusCode = StatusCodes.UNPROCESSABLE_ENTITY
+    next(validationError)
+  }
+}
+
+const validateRoomId = async (req, res, next) => {
+  const correctValidation = Joi.object({
+    id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  })
+
+  try {
+    await correctValidation.validateAsync(req.params, { abortEarly: false })
+    next()
+  } catch (error) {
+    const validationError = new Error(error)
+    validationError.statusCode = StatusCodes.UNPROCESSABLE_ENTITY
+    next(validationError)
+  }
+}
+
+const validateLocationId = async (req, res, next) => {
+  const correctValidation = Joi.object({
+    locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  })
+
+  try {
+    await correctValidation.validateAsync(req.params, { abortEarly: false })
     next()
   } catch (error) {
     const validationError = new Error(error)
@@ -54,6 +67,8 @@ const updateInfo = async (req, res, next) => {
 }
 
 export const roomValidation = {
-  createNew,
-  updateInfo,
+  createRoom,
+  updateRoom,
+  validateRoomId,
+  validateLocationId,
 }

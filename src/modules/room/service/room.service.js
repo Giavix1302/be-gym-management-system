@@ -1,68 +1,147 @@
 import { roomModel } from '../model/room.model'
+// Import location model based on your project structure
+// import { locationModel } from '~/modules/location/model/location.model'
 import { sanitize } from '~/utils/utils'
 
-const createNew = async (req) => {
+const createRoom = async (data) => {
   try {
-    const imageFiles = req.files || [] // luôn là array
-    const images = imageFiles.map((file) => file.path) // lấy ra mảng path
+    const { locationId, name, capacity } = data
 
-    // parse address vì form-data chỉ gửi string
-    const address = JSON.parse(req.body.address)
+    // Validate location exists (uncomment when location model is available)
+    // const isLocationExist = await locationModel.getDetailById(locationId)
+    // console.log('🚀 ~ createRoom ~ isLocationExist:', isLocationExist)
+    // if (isLocationExist === null) return { success: false, message: 'Location not found' }
 
-    const newData = {
-      name: req.body.name,
-      phone: req.body.phone,
-      address,
-      images, // mảng link cloudinary
-    }
-
-    console.log('🚀 ~ createNew ~ newData:', newData)
-    const createdroom = await roomModel.createNew(newData)
-    const getNewroom = await roomModel.getDetail(createdroom.insertedId)
-    return {
-      success: true,
-      message: 'room created successfully',
-      room: {
-        ...sanitize(getNewroom),
-      },
-    }
-  } catch (error) {
-    throw new Error(error)
-  }
-}
-
-const getDetail = async (userId) => {
-  try {
-    const user = await roomModel.getDetail(userId)
-    return user
-  } catch (error) {
-    throw new Error(error)
-  }
-}
-
-const updateInfo = async (roomId, data) => {
-  try {
-    // check existing user
-    const existingroom = await roomModel.getDetailById(roomId)
-    if (existingroom === null) {
+    // Check if room name already exists in the same location
+    const isRoomNameExists = await roomModel.checkRoomNameExists(locationId, name)
+    if (isRoomNameExists) {
       return {
         success: false,
-        message: 'room not found',
+        message: 'Room name already exists in this location',
       }
     }
-    const updateData = {
-      ...data,
-      updatedAt: Date.now(),
-    }
-    const result = await roomModel.updateInfo(roomId, updateData)
 
-    // update s
+    const dataToSave = {
+      locationId,
+      name: name.trim(),
+      capacity,
+    }
+
+    const result = await roomModel.createNew(dataToSave)
+
     return {
       success: true,
-      message: 'room updated successfully',
-      room: {
-        ...sanitize(result),
-      },
+      message: 'Room created successfully',
+      roomId: result.insertedId,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const getRoomById = async (roomId) => {
+  try {
+    const room = await roomModel.getDetailById(roomId)
+    console.log('🚀 ~ getRoomById ~ room:', room)
+
+    if (room === null) {
+      return {
+        success: false,
+        message: 'Room not found',
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Room retrieved successfully',
+      room: sanitize(room),
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const getRoomsByLocationId = async (locationId) => {
+  try {
+    // Validate location exists (uncomment when location model is available)
+    // const isLocationExist = await locationModel.getDetailById(locationId)
+    // if (isLocationExist === null) return { success: false, message: 'Location not found' }
+
+    const rooms = await roomModel.getRoomsByLocationId(locationId)
+    console.log('🚀 ~ getRoomsByLocationId ~ rooms:', rooms)
+
+    return {
+      success: true,
+      message: 'Location rooms retrieved successfully',
+      rooms: rooms.map((room) => sanitize(room)),
+      total: rooms.length,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const getAllRooms = async () => {
+  try {
+    const rooms = await roomModel.getAllRooms()
+    console.log('🚀 ~ getAllRooms ~ rooms count:', rooms.length)
+
+    return {
+      success: true,
+      message: 'All rooms retrieved successfully',
+      rooms: rooms.map((room) => sanitize(room)),
+      total: rooms.length,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const updateRoom = async (roomId, data) => {
+  try {
+    // Check if room exists
+    const isRoomExist = await roomModel.getDetailById(roomId)
+    console.log('🚀 ~ updateRoom ~ isRoomExist:', isRoomExist)
+    if (isRoomExist === null) return { success: false, message: 'Room not found' }
+
+    // If updating name, check for duplicates in the same location
+    if (data.name) {
+      const locationIdToCheck = data.locationId || isRoomExist.locationId
+      const isRoomNameExists = await roomModel.checkRoomNameExists(locationIdToCheck, data.name, roomId)
+      if (isRoomNameExists) {
+        return {
+          success: false,
+          message: 'Room name already exists in this location',
+        }
+      }
+    }
+
+    // If updating locationId, validate it exists (uncomment when location model is available)
+    // if (data.locationId) {
+    //   const isLocationExist = await locationModel.getDetailById(data.locationId)
+    //   if (isLocationExist === null) return { success: false, message: 'Location not found' }
+    // }
+
+    const dataToUpdate = {}
+
+    if (data.locationId) dataToUpdate.locationId = data.locationId
+    if (data.name) dataToUpdate.name = data.name.trim()
+    if (data.capacity) dataToUpdate.capacity = data.capacity
+
+    const result = await roomModel.updateInfo(roomId, dataToUpdate)
+    console.log('🚀 ~ updateRoom ~ result:', result)
+
+    if (result === null) {
+      return {
+        success: false,
+        message: 'Failed to update room',
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Room updated successfully',
+      room: sanitize(result),
     }
   } catch (error) {
     throw new Error(error)
@@ -71,14 +150,84 @@ const updateInfo = async (roomId, data) => {
 
 const deleteRoom = async (roomId) => {
   try {
-    // tim room có tồn tài không
+    // Check if room exists
+    const isRoomExist = await roomModel.getDetailById(roomId)
+    console.log('🚀 ~ deleteRoom ~ isRoomExist:', isRoomExist)
+    if (isRoomExist === null) return { success: false, message: 'Room not found' }
 
-    // xóa room
+    // TODO: Add business logic validation
+    // - Check if room has active bookings
+    // - Check if room is referenced in schedules
+    // Example:
+    // const hasActiveBookings = await bookingModel.checkActiveBookingsByRoomId(roomId)
+    // if (hasActiveBookings) {
+    //   return { success: false, message: 'Cannot delete room with active bookings' }
+    // }
+
     const result = await roomModel.deleteRoom(roomId)
+    console.log('🚀 ~ deleteRoom ~ result:', result)
+
+    if (result === 0) {
+      return {
+        success: false,
+        message: 'Failed to delete room',
+      }
+    }
+
     return {
       success: true,
-      message: 'room deleted successfully',
-      result,
+      message: 'Room deleted successfully',
+      deletedCount: result,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const softDeleteRoom = async (roomId) => {
+  try {
+    // Check if room exists
+    const isRoomExist = await roomModel.getDetailById(roomId)
+    console.log('🚀 ~ softDeleteRoom ~ isRoomExist:', isRoomExist)
+    if (isRoomExist === null) return { success: false, message: 'Room not found' }
+
+    const result = await roomModel.softDeleteRoom(roomId)
+    console.log('🚀 ~ softDeleteRoom ~ result:', result)
+
+    if (result === null) {
+      return {
+        success: false,
+        message: 'Failed to soft delete room',
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Room soft deleted successfully',
+      room: sanitize(result),
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const getRoomAvailability = async (roomId, date) => {
+  try {
+    const room = await roomModel.getDetailById(roomId)
+    if (room === null) return { success: false, message: 'Room not found' }
+
+    // TODO: Implement availability check logic
+    // - Check room schedules for the given date
+    // - Check existing bookings for the given date
+    // - Return available time slots
+
+    return {
+      success: true,
+      message: 'Room availability retrieved successfully',
+      room: sanitize(room),
+      date,
+      availableSlots: [], // Implement this logic
+      capacity: room.capacity,
     }
   } catch (error) {
     throw new Error(error)
@@ -86,8 +235,12 @@ const deleteRoom = async (roomId) => {
 }
 
 export const roomService = {
-  createNew,
-  getDetail,
-  updateInfo,
+  createRoom,
+  getRoomById,
+  getRoomsByLocationId,
+  getAllRooms,
+  updateRoom,
   deleteRoom,
+  softDeleteRoom,
+  getRoomAvailability,
 }

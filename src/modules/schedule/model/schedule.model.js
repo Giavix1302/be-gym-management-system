@@ -52,10 +52,87 @@ const getListScheduleByTrainerId = async (trainerId) => {
   try {
     const listSchedule = await GET_DB()
       .collection(SCHEDULE_COLLECTION_NAME)
-      .find({
-        trainerId: new ObjectId(String(trainerId)),
-        _destroy: false, // nếu bạn muốn chỉ lấy lịch chưa bị xoá
-      })
+      .aggregate([
+        // Match schedules for the specific trainer
+        {
+          $match: {
+            trainerId: new ObjectId(String(trainerId)),
+            _destroy: false,
+          },
+        },
+        // Left join with bookings to get booking info and user reference
+        {
+          $lookup: {
+            from: 'bookings', // or BOOKING_COLLECTION_NAME
+            localField: '_id',
+            foreignField: 'scheduleId',
+            as: 'booking',
+          },
+        },
+        // Unwind booking array (use preserveNullAndEmptyArrays for left join behavior)
+        {
+          $unwind: {
+            path: '$booking',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        // Left join with users to get member fullName
+        {
+          $lookup: {
+            from: 'users', // or USER_COLLECTION_NAME
+            localField: 'booking.userId',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        // Unwind user array
+        {
+          $unwind: {
+            path: '$user',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        // Left join with locations to get location name
+        {
+          $lookup: {
+            from: 'locations', // or LOCATION_COLLECTION_NAME
+            localField: 'booking.locationId',
+            foreignField: '_id',
+            as: 'location',
+          },
+        },
+        // Unwind location array
+        {
+          $unwind: {
+            path: '$location',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        // Project the final structure with required fields
+        {
+          $project: {
+            _id: 1,
+            trainerId: 1,
+            startTime: 1,
+            endTime: 1,
+            location: {
+              $ifNull: ['$location.name', ''],
+            },
+            member: {
+              $ifNull: ['$user.fullName', ''],
+            },
+            note: {
+              $ifNull: ['$booking.note', ''],
+            },
+          },
+        },
+        // Sort by start time (optional)
+        {
+          $sort: {
+            startTime: 1,
+          },
+        },
+      ])
       .toArray()
 
     return listSchedule
