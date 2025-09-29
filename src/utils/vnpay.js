@@ -15,7 +15,7 @@ export const vnpay = new VNPay({
 
 export const createPaymentURL = (subId, price, name) => {
   const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getMinutes() + 10)
+  tomorrow.setDate(tomorrow.getMinutes() + 30)
 
   const paymentUrl = vnpay.buildPaymentUrl({
     vnp_Amount: price,

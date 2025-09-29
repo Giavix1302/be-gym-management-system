@@ -4,6 +4,7 @@ import { paymentController } from '../controller/payment.controller'
 
 const Router = express.Router()
 
-Router.route('/vnpay/:id').post(paymentController.createPaymentVnpay)
+Router.route('/vnpay/subscription/:id').post(paymentController.createPaymentVnpay)
 Router.route('/vnpay-return').get(paymentController.vnpReturn)
+Router.route('/vnpay/booking').post(paymentController.createPaymentBookingPtVnpay)
 export const paymentRoute = Router

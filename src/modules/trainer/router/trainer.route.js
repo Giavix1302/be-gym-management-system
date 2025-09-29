@@ -8,7 +8,9 @@ const Router = express.Router()
 // Router.route('/')
 //   .post(userValidation.createNew, userController.createNew)
 
-Router.route('/').post(upload.array('physiqueImages', 6), trainerController.createNew)
+Router.route('/')
+  .post(upload.array('physiqueImages', 6), trainerController.createNew)
+  .get(trainerController.getListTrainerForUser)
 
 Router.route('/:id')
   .get(trainerController.getDetailByUserId)

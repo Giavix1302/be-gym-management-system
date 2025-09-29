@@ -1,3 +1,4 @@
+import { scheduleModel } from '~/modules/schedule/model/schedule.model'
 import { bookingModel } from '../model/booking.model'
 import { userModel } from '~/modules/user/model/user.model'
 // Import schedule and location models based on your project structure
@@ -5,29 +6,39 @@ import { userModel } from '~/modules/user/model/user.model'
 // import { locationModel } from '~/modules/location/model/location.model'
 import { BOOKING_STATUS } from '~/utils/constants.js'
 import { sanitize } from '~/utils/utils'
+import { locationModel } from '~/modules/location/model/location.model'
 
 const createBooking = async (data) => {
   try {
-    const { userId, scheduleId, locationId, price, note } = data
+    const { userId, scheduleId, locationId, price, note, title } = data
 
     // Validate user exists
     const isUserExist = await userModel.getDetailById(userId)
     console.log('🚀 ~ createBooking ~ isUserExist:', isUserExist)
     if (isUserExist === null) return { success: false, message: 'User not found' }
 
-    // Uncomment these validations when you have schedule and location models
-    // const isScheduleExist = await scheduleModel.getDetailById(scheduleId)
-    // console.log('🚀 ~ createBooking ~ isScheduleExist:', isScheduleExist)
-    // if (isScheduleExist === null) return { success: false, message: 'Schedule not found' }
+    const isScheduleExist = await scheduleModel.getDetailById(scheduleId)
+    console.log('🚀 ~ createBooking ~ isScheduleExist:', isScheduleExist)
+    if (isScheduleExist === null) return { success: false, message: 'Schedule not found' }
 
-    // const isLocationExist = await locationModel.getDetailById(locationId)
-    // console.log('🚀 ~ createBooking ~ isLocationExist:', isLocationExist)
-    // if (isLocationExist === null) return { success: false, message: 'Location not found' }
+    const isLocationExist = await locationModel.getDetailById(locationId)
+    console.log('🚀 ~ createBooking ~ isLocationExist:', isLocationExist)
+    if (isLocationExist === null) return { success: false, message: 'Location not found' }
+
+    const conflict = await bookingModel.checkUserBookingConflict(userId, scheduleId)
+
+    if (conflict) {
+      return {
+        success: false,
+        message: `User already has a booking from ${conflict.startTime} to ${conflict.endTime}`,
+      }
+    }
 
     const dataToSave = {
       userId,
       scheduleId,
       locationId,
+      title,
       status: BOOKING_STATUS.PENDING,
       price,
       note: note || '',
@@ -80,6 +91,25 @@ const getBookingsByUserId = async (userId) => {
       success: true,
       message: 'User bookings retrieved successfully',
       bookings: bookings.map((booking) => sanitize(booking)),
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const getUpcomingBookingsByUserId = async (userId) => {
+  try {
+    // Validate user exists
+    const isUserExist = await userModel.getDetailById(userId)
+    if (isUserExist === null) return { success: false, message: 'User not found' }
+
+    const bookings = await bookingModel.getUpcomingBookingsByUserId(userId)
+    console.log('🚀 ~ getBookingsByUserId ~ bookings:', bookings)
+
+    return {
+      success: true,
+      message: 'User bookings retrieved successfully',
+      bookings,
     }
   } catch (error) {
     throw new Error(error)
@@ -208,6 +238,7 @@ export const bookingService = {
   getBookingById,
   getBookingsByUserId,
   getAllBookings,
+  getUpcomingBookingsByUserId,
   updateBooking,
   deleteBooking,
   softDeleteBooking,

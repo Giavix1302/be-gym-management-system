@@ -78,6 +78,187 @@ const getDetailById = async (id) => {
   }
 }
 
+const getListTrainerForUser = async () => {
+  try {
+    const result = await GET_DB()
+      .collection(TRAINER_COLLECTION_NAME)
+      .aggregate([
+        // Match only approved trainers that are not destroyed
+        {
+          $match: {
+            // isApproved: APPROVED_TYPE.APPROVED,
+            _destroy: false,
+          },
+        },
+        // Join with users collection to get user info
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        // Unwind user array (should be only one user per trainer)
+        {
+          $unwind: '$user',
+        },
+        // Join with schedules to get trainer's schedules
+        {
+          $lookup: {
+            from: 'schedules',
+            localField: '_id',
+            foreignField: 'trainerId',
+            as: 'schedules',
+          },
+        },
+        // Join with ALL bookings to get complete booking list
+        {
+          $lookup: {
+            from: 'bookings',
+            pipeline: [
+              {
+                $match: {
+                  _destroy: false,
+                },
+              },
+              {
+                $project: {
+                  scheduleId: 1,
+                },
+              },
+            ],
+            as: 'allBookings',
+          },
+        },
+        // Join with reviews to calculate average rating
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: '_id',
+            foreignField: 'trainerId',
+            as: 'reviews',
+          },
+        },
+        // Add fields to calculate review metrics and get booked schedule IDs
+        {
+          $addFields: {
+            // Calculate average rating from reviews
+            averageRating: {
+              $cond: {
+                if: { $gt: [{ $size: '$reviews' }, 0] },
+                then: {
+                  $round: [
+                    {
+                      $avg: {
+                        $map: {
+                          input: {
+                            $filter: {
+                              input: '$reviews',
+                              cond: { $eq: ['$$this._destroy', false] },
+                            },
+                          },
+                          as: 'review',
+                          in: '$$review.rating',
+                        },
+                      },
+                    },
+                    1,
+                  ],
+                },
+                else: 0,
+              },
+            },
+            // Count total completed bookings for this trainer
+            totalBookings: {
+              $size: {
+                $filter: {
+                  input: '$allBookings',
+                  cond: {
+                    $and: [{ $eq: ['$$this._destroy', false] }, { $eq: ['$$this.status', 'COMPLETED'] }],
+                  },
+                },
+              },
+            },
+            // Get ALL booked schedule IDs from the entire bookings collection
+            bookedScheduleIds: {
+              $map: {
+                input: '$allBookings',
+                as: 'booking',
+                in: '$$booking.scheduleId',
+              },
+            },
+          },
+        },
+        // Add field for available schedules (not booked and not destroyed)
+        {
+          $addFields: {
+            availableSchedules: {
+              $filter: {
+                input: '$schedules',
+                cond: {
+                  $and: [
+                    { $eq: ['$$this._destroy', false] },
+                    {
+                      $not: {
+                        $in: ['$$this._id', '$bookedScheduleIds'],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        // Project the final structure
+        {
+          $project: {
+            userInfo: {
+              fullName: '$user.fullName',
+              avatar: '$user.avatar',
+              email: '$user.email',
+            },
+            trainerInfo: {
+              specialization: '$specialization',
+              bio: '$bio',
+              experience: '$experience',
+              education: '$education',
+              pricePerSession: '$pricePerSession',
+              physiqueImages: '$physiqueImages',
+            },
+            schedule: {
+              $map: {
+                input: '$availableSchedules',
+                as: 'sched',
+                in: {
+                  _id: '$$sched._id',
+                  startTime: '$$sched.startTime',
+                  endTime: '$$sched.endTime',
+                },
+              },
+            },
+            review: {
+              rating: '$averageRating',
+              totalBookings: '$totalBookings',
+            },
+          },
+        },
+        // Optional: Sort by rating and then by total bookings
+        {
+          $sort: {
+            'review.rating': -1,
+            'review.totalBookings': -1,
+          },
+        },
+      ])
+      .toArray()
+
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const updateInfo = async (trainerId, updateData) => {
   try {
     const updated = await GET_DB()
@@ -99,5 +280,6 @@ export const trainerModel = {
   createNew,
   getDetailByUserId,
   getDetailById,
+  getListTrainerForUser,
   updateInfo,
 }

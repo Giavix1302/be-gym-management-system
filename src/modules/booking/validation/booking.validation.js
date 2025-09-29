@@ -8,6 +8,7 @@ const createBooking = async (req, res, next) => {
     userId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     scheduleId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    title: Joi.string().trim().strict().allow(''),
     price: Joi.number().min(0).required(),
     note: Joi.string().trim().strict().allow('').optional(),
   })
@@ -33,6 +34,7 @@ const updateBooking = async (req, res, next) => {
       )
       .optional(),
     price: Joi.number().min(0).optional(),
+    title: Joi.string().trim().strict().allow(''),
     note: Joi.string().trim().strict().allow('').optional(),
   })
 

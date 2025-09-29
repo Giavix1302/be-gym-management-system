@@ -94,3 +94,7 @@ export function updateImages(imageURL = [], imageFile = [], imageURLDatabase = [
   const removeImage = imageURLDatabase.filter((img) => !finalImage.includes(img))
   return { finalImage, removeImage }
 }
+
+export function idFromTimestamp() {
+  return Date.now().toString() + '-' + Math.random().toString(36).slice(2, 6)
+}

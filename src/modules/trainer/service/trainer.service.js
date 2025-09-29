@@ -59,6 +59,22 @@ const getDetailByUserId = async (userId) => {
   }
 }
 
+const getListTrainerForUser = async () => {
+  try {
+    // check trainer
+    const listTrainerInfo = await trainerModel.getListTrainerForUser()
+    console.log('🚀 ~ getListTrainerForUser ~ listTrainerInfo:', listTrainerInfo)
+
+    return {
+      success: true,
+      message: 'List Trainer info got successfully',
+      listTrainerInfo,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const updateInfo = async (userId, req) => {
   try {
     const body = req.body || {}
@@ -183,5 +199,6 @@ const updateInfo = async (userId, req) => {
 export const trainerService = {
   createNew,
   getDetailByUserId,
+  getListTrainerForUser,
   updateInfo,
 }

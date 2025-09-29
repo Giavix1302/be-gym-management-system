@@ -1,6 +1,12 @@
 import { membershipModel } from '~/modules/membership/model/membership.model'
 import { subscriptionModel } from '~/modules/subscription/model/subscription.model'
-import { PAYMENT_METHOD, PAYMENT_STATUS, PAYMENT_TYPE, SUBSCRIPTION_STATUS } from '~/utils/constants'
+import {
+  BOOKING_STATUS,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
+  PAYMENT_TYPE,
+  SUBSCRIPTION_STATUS,
+} from '~/utils/constants'
 import { createPaymentURL, vnpay } from '~/utils/vnpay'
 import { paymentModel } from '../model/payment.model'
 import {
@@ -9,9 +15,12 @@ import {
   convertVnpayDateToISO,
   countRemainingDays,
   createRedirectUrl,
+  idFromTimestamp,
 } from '~/utils/utils'
 import { env } from '~/config/environment.config'
-import { deleteLinkPaymentTemp, saveLinkPaymentTemp } from '~/utils/redis'
+import { deleteLinkPaymentTemp, getLinkPaymentTemp, saveLinkPaymentTemp } from '~/utils/redis'
+import { bookingModel } from '~/modules/booking/model/booking.model'
+import { bookingService } from '~/modules/booking/service/booking.service'
 
 const createPaymentVnpay = async (params) => {
   try {
@@ -24,12 +33,16 @@ const createPaymentVnpay = async (params) => {
     const membershipInfo = await membershipModel.getDetailById(membershipId.toString())
     const { price, name, discount } = membershipInfo
 
+    const id = idFromTimestamp()
+
     // create payment url: subId, price, name
-    const paymentUrl = createPaymentURL(params.id, calculateDiscountedPrice(price, discount).finalPrice, name)
+    const paymentUrl = createPaymentURL(id, calculateDiscountedPrice(price, discount).finalPrice, name)
 
     const expireAt = new Date(Date.now() + 10 * 60 * 1000)
-    await saveLinkPaymentTemp(params.id, {
+    await saveLinkPaymentTemp(id, {
+      subId: params.id,
       paymentUrl,
+      paymentType: PAYMENT_TYPE.MEMBERSHIP,
       expireAt: expireAt.toISOString(),
     })
 
@@ -59,64 +72,159 @@ const createPaymentVnpay = async (params) => {
 //   message: 'Giao dịch thành công'
 // }
 
+const createPaymentBookingPtVnpay = async (data) => {
+  try {
+    let dataArr = Array.isArray(data) ? data : []
+    console.log('🚀 ~ createPaymentBookingPtVnpay ~ dataArr:', dataArr)
+    if (dataArr.length === 0) return { success: false, message: 'Data is not correct' }
+
+    let idBookingArr = []
+    let titlePayment = ''
+
+    const totalPrice = dataArr.reduce((sum, item) => sum + item.price, 0)
+
+    for (const dataBooking of dataArr) {
+      const result = await bookingService.createBooking(dataBooking)
+      if (!result.success) {
+        return {
+          ...result,
+        }
+      }
+      idBookingArr.push(result.bookingId)
+    }
+
+    if (dataArr.length === 1) {
+      titlePayment = dataArr[0].title
+    } else {
+      titlePayment = dataArr.length + 'buổi huấn luyện 1 kèm 1'
+    }
+
+    const id = idFromTimestamp()
+
+    const paymentUrl = createPaymentURL(id, totalPrice, titlePayment)
+    console.log('🚀 ~ createPaymentBookingPtVnpay ~ totalPrice:', totalPrice)
+
+    // tạo 1 mảng lưu id trong redis
+    const expireAt = new Date(Date.now() + 10 * 60 * 1000)
+    await saveLinkPaymentTemp(id, {
+      idBookingArr,
+      paymentUrl,
+      paymentType: PAYMENT_TYPE.BOOKING,
+      expireAt: expireAt.toISOString(),
+    })
+
+    return {
+      success: true,
+      paymentUrl,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const vnpReturn = async (query) => {
   try {
     const verify = vnpay.verifyReturnUrl(query) // verify chữ ký
     console.log('🚀 ~ vnpReturn ~ verify:', verify)
     const { vnp_TransactionStatus, vnp_TxnRef, vnp_Amount, vnp_OrderInfo, vnp_PayDate } = verify
 
-    if (vnp_TransactionStatus === '02') {
-      // xóa subscription
-      await subscriptionModel.deleteSubscription(vnp_TxnRef)
+    const dataToSaveRedis = await getLinkPaymentTemp(vnp_TxnRef)
+    console.log('🚀 ~ vnpReturn ~ dataToSaveRedis:', dataToSaveRedis)
+
+    if (dataToSaveRedis.paymentType === PAYMENT_TYPE.MEMBERSHIP) {
+      const { subId } = dataToSaveRedis
+      if (vnp_TransactionStatus === '02') {
+        // xóa subscription
+        await subscriptionModel.deleteSubscription(subId)
+        await deleteLinkPaymentTemp(vnp_TxnRef)
+
+        return {
+          success: false,
+          url: `${env.FE_URL}/user/payment/failed`,
+        }
+      }
+
+      // get membershipId, userId
+      const subscriptionInfo = await subscriptionModel.getDetailById(subId)
+      const { userId, membershipId } = subscriptionInfo
+      const membershipInfo = await membershipModel.getDetailById(membershipId)
+      const { durationMonth } = membershipInfo
+
+      // create payment: userId, price, refId, paymentType, method, description
+      const dataToSave = {
+        userId: userId.toString(),
+        referenceId: subId,
+        paymentType: PAYMENT_TYPE.MEMBERSHIP,
+        amount: vnp_Amount,
+        paymentDate: convertVnpayDateToISO(vnp_PayDate),
+        paymentMethod: PAYMENT_METHOD.VNPAY,
+        description: vnp_OrderInfo,
+      }
+      console.log('🚀 ~ vnpReturn ~ dataToSave:', dataToSave)
+      await paymentModel.createNew(dataToSave)
+
+      // update subscription
+      const dataUpdateSub = {
+        startDate: convertVnpayDateToISO(vnp_PayDate),
+        endDate: calculateEndDate(convertVnpayDateToISO(vnp_PayDate), durationMonth),
+        status: SUBSCRIPTION_STATUS.ACTIVE,
+        paymentStatus: PAYMENT_STATUS.PAID,
+        remainingSessions: countRemainingDays(
+          calculateEndDate(convertVnpayDateToISO(vnp_PayDate), durationMonth)
+        ),
+      }
+
+      await subscriptionModel.updateInfoWhenPaymentSuccess(subId, dataUpdateSub)
+
       await deleteLinkPaymentTemp(vnp_TxnRef)
 
+      const baseUrl = `${env.FE_URL}/user/payment/success?`
+
+      const redirectUrl = createRedirectUrl(verify, baseUrl, 'vnpay')
+
       return {
-        success: false,
-        url: `${env.FE_URL}/user/payment/failed`,
+        success: true,
+        url: redirectUrl,
       }
     }
 
-    // get membershipId, userId
-    const subscriptionInfo = await subscriptionModel.getDetailById(vnp_TxnRef)
-    const { userId, membershipId } = subscriptionInfo
-    const membershipInfo = await membershipModel.getDetailById(membershipId)
-    const { durationMonth } = membershipInfo
+    if (dataToSaveRedis.paymentType === PAYMENT_TYPE.BOOKING) {
+      const { idBookingArr } = dataToSaveRedis
+      if (vnp_TransactionStatus === '02') {
+        idBookingArr.forEach(async (id) => await bookingService.deleteBooking(id))
+        await deleteLinkPaymentTemp(vnp_TxnRef)
 
-    // create payment: userId, price, refId, paymentType, method, description
-    const dataToSave = {
-      userId: userId.toString(),
-      referenceId: vnp_TxnRef,
-      paymentType: PAYMENT_TYPE.MEMBERSHIP,
-      amount: vnp_Amount,
-      paymentDate: convertVnpayDateToISO(vnp_PayDate),
-      paymentMethod: PAYMENT_METHOD.VNPAY,
-      description: vnp_OrderInfo,
-    }
-    console.log('🚀 ~ vnpReturn ~ dataToSave:', dataToSave)
-    await paymentModel.createNew(dataToSave)
+        return {
+          success: false,
+          url: `${env.FE_URL}/user/payment/failed`,
+        }
+      }
 
-    // update subscription
-    const dataUpdateSub = {
-      startDate: convertVnpayDateToISO(vnp_PayDate),
-      endDate: calculateEndDate(convertVnpayDateToISO(vnp_PayDate), durationMonth),
-      status: SUBSCRIPTION_STATUS.ACTIVE,
-      paymentStatus: PAYMENT_STATUS.PAID,
-      remainingSessions: countRemainingDays(
-        calculateEndDate(convertVnpayDateToISO(vnp_PayDate), durationMonth)
-      ),
-    }
+      idBookingArr.forEach(async (id) => {
+        const result = await bookingService.updateBooking(id, {
+          status: BOOKING_STATUS.BOOKING,
+        })
+        await paymentModel.createNew({
+          userId: result.booking.userId.toString(),
+          referenceId: result.booking._id.toString(),
+          paymentType: PAYMENT_TYPE.BOOKING,
+          amount: result.booking.price,
+          paymentDate: convertVnpayDateToISO(vnp_PayDate),
+          paymentMethod: PAYMENT_METHOD.VNPAY,
+          description: result.booking.title,
+        })
+      })
 
-    await subscriptionModel.updateInfoWhenPaymentSuccess(vnp_TxnRef, dataUpdateSub)
+      await deleteLinkPaymentTemp(vnp_TxnRef)
 
-    await deleteLinkPaymentTemp(vnp_TxnRef)
+      const baseUrl = `${env.FE_URL}/user/payment/success?`
 
-    const baseUrl = `${env.FE_URL}/user/payment/success?`
+      const redirectUrl = createRedirectUrl(verify, baseUrl, 'vnpay')
 
-    const redirectUrl = createRedirectUrl(verify, baseUrl, 'vnpay')
-
-    return {
-      success: true,
-      url: redirectUrl,
+      return {
+        success: true,
+        url: redirectUrl,
+      }
     }
   } catch (error) {
     throw new Error(error)
@@ -125,5 +233,6 @@ const vnpReturn = async (query) => {
 
 export const paymentService = {
   createPaymentVnpay,
+  createPaymentBookingPtVnpay,
   vnpReturn,
 }

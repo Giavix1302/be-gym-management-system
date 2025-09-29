@@ -29,6 +29,19 @@ const getDetailByUserId = async (req, res, next) => {
   }
 }
 
+const getListTrainerForUser = async (req, res, next) => {
+  try {
+    const result = await trainerService.getListTrainerForUser()
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 const updateInfo = async (req, res, next) => {
   try {
     const userId = req.params.id
@@ -46,5 +59,6 @@ const updateInfo = async (req, res, next) => {
 export const trainerController = {
   createNew,
   getDetailByUserId,
+  getListTrainerForUser,
   updateInfo,
 }

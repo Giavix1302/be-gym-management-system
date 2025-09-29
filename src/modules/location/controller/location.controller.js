@@ -15,11 +15,14 @@ const createNew = async (req, res, next) => {
   }
 }
 
-const getDetail = async (req, res, next) => {
+const getListLocation = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const user = await locationService.getDetail(userId)
-    res.status(StatusCodes.OK).json(user)
+    const result = await locationService.getListLocation()
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.BAD_REQUEST).json(result)
+    }
   } catch (error) {
     next(error)
   }
@@ -55,7 +58,7 @@ const deleteLocation = async (req, res, next) => {
 
 export const locationController = {
   createNew,
-  getDetail,
+  getListLocation,
   updateInfo,
   deleteLocation,
 }

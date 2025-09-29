@@ -19,6 +19,7 @@ const createNew = async (req) => {
     console.log('🚀 ~ createNew ~ newData:', newData)
     const createdLocation = await locationModel.createNew(newData)
     const getNewLocation = await locationModel.getDetail(createdLocation.insertedId)
+
     return {
       success: true,
       message: 'Location created successfully',
@@ -31,10 +32,15 @@ const createNew = async (req) => {
   }
 }
 
-const getDetail = async (userId) => {
+const getListLocation = async (userId) => {
   try {
-    const user = await locationModel.getDetail(userId)
-    return user
+    const listLocation = await locationModel.getListLocation(userId)
+    console.log('🚀 ~ getListLocation ~ listLocation:', listLocation)
+    return {
+      success: true,
+      message: 'Location created successfully',
+      locations: listLocation.map((location) => sanitize(location)),
+    }
   } catch (error) {
     throw new Error(error)
   }
@@ -87,7 +93,7 @@ const deleteLocation = async (locationId) => {
 
 export const locationService = {
   createNew,
-  getDetail,
+  getListLocation,
   updateInfo,
   deleteLocation,
 }
