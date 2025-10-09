@@ -8,7 +8,7 @@ const PAYMENT_COLLECTION_NAME = 'payments'
 const PAYMENT_COLLECTION_SCHEMA = Joi.object({
   userId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   referenceId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  paymentType: Joi.string().valid(PAYMENT_TYPE.MEMBERSHIP, PAYMENT_TYPE.BOOKING),
+  paymentType: Joi.string().valid(PAYMENT_TYPE.MEMBERSHIP, PAYMENT_TYPE.BOOKING, PAYMENT_TYPE.CLASS),
   amount: Joi.number().min(1).required(),
   paymentDate: Joi.string().isoDate().allow('').default(''),
   paymentMethod: Joi.string().valid(

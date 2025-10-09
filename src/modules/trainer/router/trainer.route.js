@@ -8,12 +8,16 @@ const Router = express.Router()
 // Router.route('/')
 //   .post(userValidation.createNew, userController.createNew)
 
-Router.route('/')
-  .post(upload.array('physiqueImages', 6), trainerController.createNew)
-  .get(trainerController.getListTrainerForUser)
+Router.route('/').post(upload.array('physiqueImages', 6), trainerController.createNew)
+
+Router.route('/user').get(trainerController.getListTrainerForUser)
+
+Router.route('/admin').get(trainerController.getListTrainerForAdmin)
 
 Router.route('/:id')
   .get(trainerController.getDetailByUserId)
   .put(upload.array('physiqueImagesNew', 6), trainerController.updateInfo)
+
+Router.route('/is-approved/:id').put(trainerController.updateIsApproved)
 
 export const trainerRoute = Router

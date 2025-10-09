@@ -421,6 +421,228 @@ const checkUserBookingConflict = async (userId, scheduleId) => {
   }
 }
 
+const getHistoryBookingsByUserId = async (userId) => {
+  try {
+    const now = new Date()
+
+    const result = await GET_DB()
+      .collection(BOOKING_COLLECTION_NAME)
+      .aggregate([
+        // Match bookings for specific user that are in the past
+        {
+          $match: {
+            userId: new ObjectId(String(userId)),
+            _destroy: false,
+          },
+        },
+        // Join with schedules to get schedule timing information
+        {
+          $lookup: {
+            from: 'schedules',
+            localField: 'scheduleId',
+            foreignField: '_id',
+            as: 'schedule',
+          },
+        },
+        // Unwind schedule array
+        {
+          $unwind: '$schedule',
+        },
+        // Filter for past sessions only (before current time)
+        {
+          $match: {
+            'schedule.endTime': { $lt: now.toISOString() },
+            'schedule._destroy': false,
+          },
+        },
+        // Join with trainers collection
+        {
+          $lookup: {
+            from: 'trainers',
+            localField: 'schedule.trainerId',
+            foreignField: '_id',
+            as: 'trainer',
+          },
+        },
+        // Unwind trainer array
+        {
+          $unwind: '$trainer',
+        },
+        // Join with users collection to get trainer's user info
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'trainer.userId',
+            foreignField: '_id',
+            as: 'trainerUser',
+          },
+        },
+        // Unwind trainer user array
+        {
+          $unwind: '$trainerUser',
+        },
+        // Join with locations collection
+        {
+          $lookup: {
+            from: 'locations',
+            localField: 'locationId',
+            foreignField: '_id',
+            as: 'location',
+          },
+        },
+        // Unwind location array
+        {
+          $unwind: '$location',
+        },
+        // Join with reviews collection (left join - review may not exist)
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: '_id',
+            foreignField: 'bookingId',
+            as: 'reviewData',
+          },
+        },
+        // Join with all reviews for this trainer to calculate rating
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: 'trainer._id',
+            foreignField: 'trainerId',
+            as: 'trainerReviews',
+          },
+        },
+        // Add calculated fields
+        {
+          $addFields: {
+            // Calculate average rating from all trainer reviews
+            trainerRating: {
+              $cond: {
+                if: { $gt: [{ $size: '$trainerReviews' }, 0] },
+                then: {
+                  $round: [
+                    {
+                      $avg: {
+                        $map: {
+                          input: {
+                            $filter: {
+                              input: '$trainerReviews',
+                              cond: { $eq: ['$$this._destroy', false] },
+                            },
+                          },
+                          as: 'review',
+                          in: '$$review.rating',
+                        },
+                      },
+                    },
+                    1,
+                  ],
+                },
+                else: 0,
+              },
+            },
+            // Get the review for this specific booking (if exists)
+            bookingReview: {
+              $cond: {
+                if: { $gt: [{ $size: '$reviewData' }, 0] },
+                then: { $arrayElemAt: ['$reviewData', 0] },
+                else: null,
+              },
+            },
+          },
+        },
+        // Project the final structure to match your mock data
+        {
+          $project: {
+            bookingId: '$_id',
+            originalStatus: '$status', // Keep track of original status
+            status: {
+              $cond: {
+                if: {
+                  $or: [
+                    { $eq: ['$status', BOOKING_STATUS.BOOKING] },
+                    { $eq: ['$status', BOOKING_STATUS.PENDING] },
+                  ],
+                },
+                then: BOOKING_STATUS.COMPLETED,
+                else: '$status',
+              },
+            },
+            price: 1,
+            note: 1,
+            trainer: {
+              trainerId: '$trainer._id',
+              userInfo: {
+                fullName: '$trainerUser.fullName',
+                avatar: '$trainerUser.avatar',
+                email: '$trainerUser.email',
+              },
+              specialization: '$trainer.specialization',
+              rating: '$trainerRating',
+            },
+            session: {
+              startTime: '$schedule.startTime',
+              endTime: '$schedule.endTime',
+              location: {
+                name: '$location.name',
+                address: '$location.address',
+              },
+            },
+            review: {
+              $cond: {
+                if: { $ne: ['$bookingReview', null] },
+                then: {
+                  rating: '$bookingReview.rating',
+                  comment: '$bookingReview.comment',
+                },
+                else: {},
+              },
+            },
+          },
+        },
+        // Sort by session end time (most recent first)
+        {
+          $sort: {
+            'session.endTime': -1,
+          },
+        },
+      ])
+      .toArray()
+
+    // Update the status in the database for bookings that need to be completed
+    const bookingsToUpdate = result
+      .filter(
+        (booking) =>
+          booking.originalStatus === BOOKING_STATUS.BOOKING ||
+          booking.originalStatus === BOOKING_STATUS.PENDING
+      )
+      .map((booking) => booking.bookingId)
+
+    if (bookingsToUpdate.length > 0) {
+      await GET_DB()
+        .collection(BOOKING_COLLECTION_NAME)
+        .updateMany(
+          {
+            _id: { $in: bookingsToUpdate },
+          },
+          {
+            $set: {
+              status: BOOKING_STATUS.COMPLETED,
+              updatedAt: Date.now(),
+            },
+          }
+        )
+    }
+
+    // Remove the originalStatus field from the result
+    const cleanedResult = result.map(({ originalStatus, ...booking }) => booking)
+
+    return cleanedResult
+  } catch (error) {
+    throw new Error(`Error fetching history bookings: ${error.message}`)
+  }
+}
+
 const getAllBookings = async () => {
   try {
     const bookings = await GET_DB().collection(BOOKING_COLLECTION_NAME).find({}).toArray()
@@ -481,6 +703,7 @@ export const bookingModel = {
   getAllBookings,
   getUpcomingBookingsByUserId,
   getUpcomingBookingsByUserIdSimple,
+  getHistoryBookingsByUserId,
   checkUserBookingConflict,
   updateInfo,
   deleteBooking,

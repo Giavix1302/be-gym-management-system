@@ -98,3 +98,77 @@ export function updateImages(imageURL = [], imageFile = [], imageURLDatabase = [
 export function idFromTimestamp() {
   return Date.now().toString() + '-' + Math.random().toString(36).slice(2, 6)
 }
+
+export function isValidDateRange(start, end) {
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+
+  if (isNaN(startDate) || isNaN(endDate)) {
+    throw new Error('Ngày không hợp lệ')
+  }
+
+  return startDate < endDate
+}
+
+// Helper function to generate class sessions
+// Helper function to generate class sessions
+export const generateClassSessions = (classId, startDate, endDate, recurrenceArray, trainers, className) => {
+  const sessions = []
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const now = new Date() // Current date and time
+
+  // Iterate through each recurrence pattern
+  recurrenceArray.forEach((recurrence) => {
+    const { dayOfWeek, startTime, endTime, roomId } = recurrence
+
+    // Find the first occurrence of the target day of week
+    let currentDate = new Date(start)
+
+    // Adjust to the first occurrence of the target day
+    while (currentDate.getDay() !== dayOfWeek) {
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+
+    // Generate sessions for every week until end date
+    while (currentDate <= end) {
+      // Create session start and end datetime
+      const sessionStart = new Date(currentDate)
+      sessionStart.setHours(startTime.hour, startTime.minute, 0, 0)
+
+      const sessionEnd = new Date(currentDate)
+      sessionEnd.setHours(endTime.hour, endTime.minute, 0, 0)
+
+      // Only create session if it's in the future
+      if (sessionStart > now) {
+        sessions.push({
+          classId: classId.toString(),
+          trainers: trainers,
+          users: [],
+          roomId: roomId,
+          startTime: sessionStart.toISOString(),
+          endTime: sessionEnd.toISOString(),
+          title: `${className} - ${getDayName(dayOfWeek)} ${formatTime(startTime)}-${formatTime(endTime)}`,
+        })
+      }
+
+      // Move to next week
+      currentDate.setDate(currentDate.getDate() + 7)
+    }
+  })
+
+  return sessions
+}
+
+// Helper function to get day name
+export const getDayName = (dayOfWeek) => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  return days[dayOfWeek]
+}
+
+// Helper function to format time
+export const formatTime = (time) => {
+  const hour = time.hour.toString().padStart(2, '0')
+  const minute = time.minute.toString().padStart(2, '0')
+  return `${hour}:${minute}`
+}

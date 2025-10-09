@@ -116,6 +116,25 @@ const getUpcomingBookingsByUserId = async (userId) => {
   }
 }
 
+const getHistoryBookingsByUserId = async (userId) => {
+  try {
+    // Validate user exists
+    const isUserExist = await userModel.getDetailById(userId)
+    if (isUserExist === null) return { success: false, message: 'User not found' }
+
+    const bookings = await bookingModel.getHistoryBookingsByUserId(userId)
+    console.log('🚀 ~ getBookingsByUserId ~ bookings:', bookings)
+
+    return {
+      success: true,
+      message: 'User bookings retrieved successfully',
+      bookings,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const getAllBookings = async () => {
   try {
     const bookings = await bookingModel.getAllBookings()
@@ -239,6 +258,7 @@ export const bookingService = {
   getBookingsByUserId,
   getAllBookings,
   getUpcomingBookingsByUserId,
+  getHistoryBookingsByUserId,
   updateBooking,
   deleteBooking,
   softDeleteBooking,

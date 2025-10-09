@@ -259,6 +259,359 @@ const getListTrainerForUser = async () => {
   }
 }
 
+const getListTrainerForAdmin = async () => {
+  try {
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    const result = await GET_DB()
+      .collection(TRAINER_COLLECTION_NAME)
+      .aggregate([
+        // Match all trainers (including destroyed ones for admin view)
+        {
+          $match: {
+            _destroy: false,
+          },
+        },
+        // Join with users collection to get user info
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        {
+          $unwind: '$user',
+        },
+        // Join with schedules to get trainer's schedules (from today onwards)
+        {
+          $lookup: {
+            from: 'schedules',
+            let: { trainerId: '$_id', todayDate: todayStart },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ['$trainerId', '$$trainerId'] },
+                      {
+                        $gte: [{ $toDate: '$startTime' }, '$$todayDate'],
+                      },
+                      { $eq: ['$_destroy', false] },
+                    ],
+                  },
+                },
+              },
+              {
+                $sort: { startTime: 1 },
+              },
+            ],
+            as: 'schedules',
+          },
+        },
+        // Join with all bookings for this trainer (to get booking details for schedules)
+        {
+          $lookup: {
+            from: 'bookings',
+            let: { scheduleIds: '$schedules._id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [{ $in: ['$scheduleId', '$$scheduleIds'] }, { $eq: ['$_destroy', false] }],
+                  },
+                },
+              },
+              // Join with users to get customer fullName
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'userId',
+                  foreignField: '_id',
+                  as: 'userInfo',
+                },
+              },
+              {
+                $unwind: '$userInfo',
+              },
+              // Join with locations to get location name
+              {
+                $lookup: {
+                  from: 'locations',
+                  localField: 'locationId',
+                  foreignField: '_id',
+                  as: 'locationInfo',
+                },
+              },
+              {
+                $unwind: '$locationInfo',
+              },
+              {
+                $project: {
+                  scheduleId: 1,
+                  title: 1,
+                  userName: '$userInfo.fullName',
+                  locationName: '$locationInfo.name',
+                },
+              },
+            ],
+            as: 'scheduleBookings',
+          },
+        },
+        // Join with all historical bookings for this trainer
+        {
+          $lookup: {
+            from: 'bookings',
+            let: { trainerId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ['$_destroy', false] },
+                },
+              },
+              // Join with schedules to filter by trainerId
+              {
+                $lookup: {
+                  from: 'schedules',
+                  localField: 'scheduleId',
+                  foreignField: '_id',
+                  as: 'schedule',
+                },
+              },
+              {
+                $unwind: '$schedule',
+              },
+              {
+                $match: {
+                  $expr: { $eq: ['$schedule.trainerId', '$$trainerId'] },
+                },
+              },
+              // Join with users to get customer fullName
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'userId',
+                  foreignField: '_id',
+                  as: 'userInfo',
+                },
+              },
+              {
+                $unwind: '$userInfo',
+              },
+              // Join with locations to get location name
+              {
+                $lookup: {
+                  from: 'locations',
+                  localField: 'locationId',
+                  foreignField: '_id',
+                  as: 'locationInfo',
+                },
+              },
+              {
+                $unwind: '$locationInfo',
+              },
+              {
+                $project: {
+                  fullName: '$userInfo.fullName',
+                  startTime: '$schedule.startTime',
+                  endTime: '$schedule.endTime',
+                  locationName: '$locationInfo.name',
+                  price: '$price',
+                  status: '$status',
+                },
+              },
+              {
+                $sort: { startTime: -1 },
+              },
+            ],
+            as: 'allBookings',
+          },
+        },
+        // Join with reviews to get all reviews
+        {
+          $lookup: {
+            from: 'reviews',
+            let: { trainerId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [{ $eq: ['$trainerId', '$$trainerId'] }, { $eq: ['$_destroy', false] }],
+                  },
+                },
+              },
+              // Join with users to get reviewer's fullName
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'userId',
+                  foreignField: '_id',
+                  as: 'userInfo',
+                },
+              },
+              {
+                $unwind: '$userInfo',
+              },
+              {
+                $project: {
+                  fullName: '$userInfo.fullName',
+                  rating: '$rating',
+                  comment: '$comment',
+                  createAt: '$createdAt',
+                },
+              },
+              {
+                $sort: { createAt: -1 },
+              },
+            ],
+            as: 'reviews',
+          },
+        },
+        // Add calculated fields
+        {
+          $addFields: {
+            // Calculate total bookings (completed only)
+            totalBookings: {
+              $size: {
+                $filter: {
+                  input: '$allBookings',
+                  cond: { $eq: ['$$this.status', 'completed'] },
+                },
+              },
+            },
+            // Calculate average rating
+            rating: {
+              $cond: {
+                if: { $gt: [{ $size: '$reviews' }, 0] },
+                then: {
+                  $round: [
+                    {
+                      $avg: '$reviews.rating',
+                    },
+                    1,
+                  ],
+                },
+                else: 0,
+              },
+            },
+            // Calculate total revenue (completed bookings only)
+            revenue: {
+              $sum: {
+                $map: {
+                  input: {
+                    $filter: {
+                      input: '$allBookings',
+                      cond: true, // { $eq: ['$$this.status', 'completed'] },
+                    },
+                  },
+                  as: 'booking',
+                  in: '$$booking.price',
+                },
+              },
+            },
+          },
+        },
+        // Map schedules with booking information
+        {
+          $addFields: {
+            schedule: {
+              $map: {
+                input: '$schedules',
+                as: 'sched',
+                in: {
+                  $let: {
+                    vars: {
+                      bookingDetail: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: '$scheduleBookings',
+                              cond: { $eq: ['$$this.scheduleId', '$$sched._id'] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                    in: {
+                      startTime: '$$sched.startTime',
+                      endTime: '$$sched.endTime',
+                      title: {
+                        $cond: {
+                          if: { $ifNull: ['$$bookingDetail', false] },
+                          then: '$$bookingDetail.title',
+                          else: 'Unbooked Schedule',
+                        },
+                      },
+                      userName: {
+                        $cond: {
+                          if: { $ifNull: ['$$bookingDetail', false] },
+                          then: '$$bookingDetail.userName',
+                          else: '',
+                        },
+                      },
+                      locationName: {
+                        $cond: {
+                          if: { $ifNull: ['$$bookingDetail', false] },
+                          then: '$$bookingDetail.locationName',
+                          else: '',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        // Project final structure
+        {
+          $project: {
+            trainerId: { $toString: '$_id' },
+            userInfo: {
+              name: '$user.fullName',
+              avatar: '$user.avatar',
+              email: '$user.email',
+              phone: '$user.phone',
+              age: '$user.age',
+            },
+            trainerInfo: {
+              specialization: '$specialization',
+              bio: '$bio',
+              physiqueImages: '$physiqueImages',
+              isApproved: '$isApproved',
+              approvedAt: '$approvedAt',
+              experience: '$experience',
+              education: '$education',
+              pricePerSession: '$pricePerSession',
+            },
+            totalBookings: '$totalBookings',
+            rating: '$rating',
+            totalReviews: { $size: '$reviews' },
+            revenue: '$revenue',
+            schedule: '$schedule',
+            booked: '$allBookings',
+            review: '$reviews',
+          },
+        },
+        // Sort by rating and total bookings
+        {
+          $sort: {
+            rating: -1,
+            totalBookings: -1,
+          },
+        },
+      ])
+      .toArray()
+
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const updateInfo = async (trainerId, updateData) => {
   try {
     const updated = await GET_DB()
@@ -281,5 +634,6 @@ export const trainerModel = {
   getDetailByUserId,
   getDetailById,
   getListTrainerForUser,
+  getListTrainerForAdmin,
   updateInfo,
 }

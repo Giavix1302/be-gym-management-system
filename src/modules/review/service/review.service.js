@@ -3,22 +3,11 @@ import { sanitize } from '~/utils/utils'
 
 const createNew = async (req) => {
   try {
-    const imageFiles = req.files || [] // luôn là array
-    const images = imageFiles.map((file) => file.path) // lấy ra mảng path
-
-    // parse address vì form-data chỉ gửi string
-    const address = JSON.parse(req.body.address)
-
     const newData = {
-      name: req.body.name,
-      phone: req.body.phone,
-      address,
-      images, // mảng link cloudinary
+      ...req.body,
     }
-
-    console.log('🚀 ~ createNew ~ newData:', newData)
     const createdReview = await reviewModel.createNew(newData)
-    const getNewReview = await reviewModel.getDetail(createdReview.insertedId)
+    const getNewReview = await reviewModel.getDetailById(createdReview.insertedId)
     return {
       success: true,
       message: 'review created successfully',

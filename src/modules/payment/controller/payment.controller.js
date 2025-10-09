@@ -44,8 +44,23 @@ const createPaymentBookingPtVnpay = async (req, res, next) => {
   }
 }
 
+const createPaymentClassVnpay = async (req, res, next) => {
+  try {
+    const result = await paymentService.createPaymentClassVnpay(req.body)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const paymentController = {
   createPaymentVnpay,
   vnpReturn,
   createPaymentBookingPtVnpay,
+  createPaymentClassVnpay,
 }

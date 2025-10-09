@@ -29,6 +29,7 @@ Router.route('/:id')
 // Route for user's bookings: /api/bookings/user/:userId
 Router.route('/user/:userId').get(authMiddleware, bookingController.getBookingsByUserId)
 Router.route('/user/:userId/upcoming').get(bookingController.getUpcomingBookingsByUserId) // remember add func auth token
+Router.route('/user/:userId/history').get(bookingController.getHistoryBookingsByUserId)
 
 // Route for soft delete: /api/bookings/:id/soft-delete
 Router.route('/:id/soft-delete').patch(
@@ -38,10 +39,6 @@ Router.route('/:id/soft-delete').patch(
 )
 
 // Route for cancel booking: /api/bookings/:id/cancel
-Router.route('/:id/cancel').patch(
-  authMiddleware,
-  bookingValidation.validateBookingId,
-  bookingController.cancelBooking
-)
+Router.route('/:id/cancel').patch(bookingValidation.validateBookingId, bookingController.cancelBooking)
 
 export const bookingRoute = Router

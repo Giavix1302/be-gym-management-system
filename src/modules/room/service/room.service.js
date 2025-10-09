@@ -13,13 +13,13 @@ const createRoom = async (data) => {
     // if (isLocationExist === null) return { success: false, message: 'Location not found' }
 
     // Check if room name already exists in the same location
-    const isRoomNameExists = await roomModel.checkRoomNameExists(locationId, name)
-    if (isRoomNameExists) {
-      return {
-        success: false,
-        message: 'Room name already exists in this location',
-      }
-    }
+    // const isRoomNameExists = await roomModel.checkRoomNameExists(locationId, name)
+    // if (isRoomNameExists) {
+    //   return {
+    //     success: false,
+    //     message: 'Room name already exists in this location',
+    //   }
+    // }
 
     const dataToSave = {
       locationId,

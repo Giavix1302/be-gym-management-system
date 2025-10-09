@@ -15,13 +15,13 @@ if (ENV === 'production') {
   corsOptions = {
     origin: [env.FE_URL], // domain FE thật
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   }
 } else if (ENV === 'development') {
   corsOptions = {
     origin: 'http://localhost:5173', // domain FE dev
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   }
 }
 

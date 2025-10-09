@@ -75,6 +75,41 @@ const getListTrainerForUser = async () => {
   }
 }
 
+const getListTrainerForAdmin = async () => {
+  try {
+    // check trainer
+    const listTrainerInfo = await trainerModel.getListTrainerForAdmin()
+    console.log('🚀 ~ getListTrainerForUser ~ listTrainerInfo:', listTrainerInfo)
+
+    return {
+      success: true,
+      message: 'List Trainer info got successfully',
+      listTrainerInfo,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const updateIsApproved = async (trainerId, data) => {
+  try {
+    const dataToUpdate = {
+      isApproved: data.isApproved,
+      approvedAt: data.isApproved ? new Date().toISOString() : '',
+    }
+    // check trainer
+    const trainerInfo = await trainerModel.updateInfo(trainerId, dataToUpdate)
+
+    return {
+      success: true,
+      message: 'Trainer updated successfully',
+      trainerInfo,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const updateInfo = async (userId, req) => {
   try {
     const body = req.body || {}
@@ -200,5 +235,7 @@ export const trainerService = {
   createNew,
   getDetailByUserId,
   getListTrainerForUser,
+  getListTrainerForAdmin,
   updateInfo,
+  updateIsApproved,
 }

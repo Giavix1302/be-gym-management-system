@@ -18,7 +18,7 @@ const createNew = async (req) => {
 
     console.log('🚀 ~ createNew ~ newData:', newData)
     const createdLocation = await locationModel.createNew(newData)
-    const getNewLocation = await locationModel.getDetail(createdLocation.insertedId)
+    const getNewLocation = await locationModel.getDetailById(createdLocation.insertedId)
 
     return {
       success: true,

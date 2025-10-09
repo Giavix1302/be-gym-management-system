@@ -42,6 +42,19 @@ const getListTrainerForUser = async (req, res, next) => {
   }
 }
 
+const getListTrainerForAdmin = async (req, res, next) => {
+  try {
+    const result = await trainerService.getListTrainerForAdmin()
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 const updateInfo = async (req, res, next) => {
   try {
     const userId = req.params.id
@@ -56,9 +69,25 @@ const updateInfo = async (req, res, next) => {
   }
 }
 
+const updateIsApproved = async (req, res, next) => {
+  try {
+    const trainerId = req.params.id
+    const result = await trainerService.updateIsApproved(trainerId, req.body)
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.NOT_FOUND).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const trainerController = {
   createNew,
   getDetailByUserId,
   getListTrainerForUser,
+  getListTrainerForAdmin,
   updateInfo,
+  updateIsApproved,
 }

@@ -1,38 +1,85 @@
 import { StatusCodes } from 'http-status-codes'
 import { classService } from '../service/class.service'
 
-const createNew = async (req, res, next) => {
+const addClass = async (req, res, next) => {
   try {
-    const result = await classService.createNew(req)
+    const result = await classService.addClass(req)
 
     if (result.success) {
-      res.status(StatusCodes.OK).json(result)
+      res.status(StatusCodes.CREATED).json(result)
     } else {
-      res.status(StatusCodes.BAD_REQUEST).json(result)
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
   } catch (error) {
     next(error)
   }
 }
 
-const getDetail = async (req, res, next) => {
+const getListClasses = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const user = await classService.getDetail(userId)
-    res.status(StatusCodes.OK).json(user)
+    const result = await classService.getListClasses()
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
   } catch (error) {
     next(error)
   }
 }
 
-const updateInfo = async (req, res, next) => {
+const getListClassInfoForAdmin = async (req, res, next) => {
+  try {
+    const result = await classService.getListClassInfoForAdmin()
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getListClassInfoForUser = async (req, res, next) => {
+  try {
+    const result = await classService.getListClassInfoForUser()
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getClassDetail = async (req, res, next) => {
   try {
     const classId = req.params.id
-    const result = await classService.updateInfo(classId, req.body)
+    const result = await classService.getClassDetail(classId)
+
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {
       res.status(StatusCodes.NOT_FOUND).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const updateClass = async (req, res, next) => {
+  try {
+    const result = await classService.updateClass(req)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
   } catch (error) {
     next(error)
@@ -41,12 +88,43 @@ const updateInfo = async (req, res, next) => {
 
 const deleteClass = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const result = await classService.deleteClass(userId)
+    const classId = req.params.id
+    const result = await classService.deleteClass(classId)
+
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
     } else {
-      res.status(StatusCodes.NOT_FOUND).json(result)
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getClassesByTrainer = async (req, res, next) => {
+  try {
+    const trainerId = req.params.trainerId
+    const result = await classService.getClassesByTrainer(trainerId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getClassesByType = async (req, res, next) => {
+  try {
+    const classType = req.params.type
+    const result = await classService.getClassesByType(classType)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
     }
   } catch (error) {
     next(error)
@@ -54,8 +132,13 @@ const deleteClass = async (req, res, next) => {
 }
 
 export const classController = {
-  createNew,
-  getDetail,
-  updateInfo,
+  addClass,
+  getListClasses,
+  getClassDetail,
+  updateClass,
   deleteClass,
+  getClassesByTrainer,
+  getClassesByType,
+  getListClassInfoForAdmin,
+  getListClassInfoForUser,
 }

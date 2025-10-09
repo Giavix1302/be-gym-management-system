@@ -52,10 +52,10 @@ const getDetailById = async (reviewId) => {
   }
 }
 
-const getListreview = async () => {
+const getListReview = async () => {
   try {
-    const listreview = await GET_DB().collection(REVIEW_COLLECTION_NAME).find({}).toArray()
-    return listreview
+    const listReview = await GET_DB().collection(REVIEW_COLLECTION_NAME).find({}).toArray()
+    return listReview
   } catch (error) {
     throw new Error(error)
   }
@@ -63,25 +63,25 @@ const getListreview = async () => {
 
 const updateInfo = async (reviewId, updateData) => {
   try {
-    const updatedreview = await GET_DB()
+    const updatedReview = await GET_DB()
       .collection(REVIEW_COLLECTION_NAME)
       .findOneAndUpdate(
         { _id: new ObjectId(String(reviewId)) },
         { $set: updateData },
         { returnDocument: 'after' }
       )
-    return updatedreview
+    return updatedReview
   } catch (error) {
     throw new Error(error)
   }
 }
 
-const deletereview = async (reviewId) => {
+const deleteReview = async (reviewId) => {
   try {
-    const updatedreview = await GET_DB()
+    const review = await GET_DB()
       .collection(REVIEW_COLLECTION_NAME)
       .deleteOne({ _id: new ObjectId(String(reviewId)) })
-    return updatedreview.deletedCount
+    return review.deletedCount
   } catch (error) {
     throw new Error(error)
   }
@@ -92,7 +92,7 @@ export const reviewModel = {
   REVIEW_COLLECTION_SCHEMA,
   createNew,
   getDetailById,
-  getListreview,
+  getListReview,
   updateInfo,
-  deletereview,
+  deleteReview,
 }

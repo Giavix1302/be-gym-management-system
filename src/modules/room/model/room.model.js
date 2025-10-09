@@ -43,9 +43,19 @@ const getDetail = async (userId) => {
   }
 }
 
+const getAllRooms = async () => {
+  try {
+    const rooms = GET_DB().collection(ROOM_COLLECTION_NAME).find({}).toArray()
+    return rooms
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const roomModel = {
   ROOM_COLLECTION_NAME,
   ROOM_COLLECTION_SCHEMA,
   createNew,
   getDetail,
+  getAllRooms,
 }

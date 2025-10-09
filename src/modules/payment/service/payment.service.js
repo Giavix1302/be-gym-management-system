@@ -2,6 +2,7 @@ import { membershipModel } from '~/modules/membership/model/membership.model'
 import { subscriptionModel } from '~/modules/subscription/model/subscription.model'
 import {
   BOOKING_STATUS,
+  CLASS_ENROLLMENT_STATUS,
   PAYMENT_METHOD,
   PAYMENT_STATUS,
   PAYMENT_TYPE,
@@ -21,6 +22,9 @@ import { env } from '~/config/environment.config'
 import { deleteLinkPaymentTemp, getLinkPaymentTemp, saveLinkPaymentTemp } from '~/utils/redis'
 import { bookingModel } from '~/modules/booking/model/booking.model'
 import { bookingService } from '~/modules/booking/service/booking.service'
+import { classEnrollmentModel } from '~/modules/classEnrollment/model/classEnrollment.model'
+import { classEnrollmentService } from '~/modules/classEnrollment/service/classEnrollment.service'
+import { classSessionModel } from '~/modules/classSession/model/classSession.model'
 
 const createPaymentVnpay = async (params) => {
   try {
@@ -110,6 +114,45 @@ const createPaymentBookingPtVnpay = async (data) => {
       idBookingArr,
       paymentUrl,
       paymentType: PAYMENT_TYPE.BOOKING,
+      expireAt: expireAt.toISOString(),
+    })
+
+    return {
+      success: true,
+      paymentUrl,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+const createPaymentClassVnpay = async (data) => {
+  try {
+    const { userId, classId, title, price } = data
+    // check duplicate time
+    const conflict = await classEnrollmentModel.checkScheduleConflict(userId, classId)
+
+    if (conflict) {
+      return {
+        success: false,
+        message:
+          `Cannot enroll: ${conflict.message}. ` +
+          `Class session at ${conflict.classSession.startTime} conflicts with ` +
+          `existing booking at ${conflict.existingBooking.startTime}`,
+      }
+    }
+
+    const id = idFromTimestamp()
+    // cần 1 title và price
+    const paymentUrl = createPaymentURL(id, price, title)
+
+    // tạo 1 mảng lưu id trong redis
+    const expireAt = new Date(Date.now() + 10 * 60 * 1000)
+    await saveLinkPaymentTemp(id, {
+      userId,
+      classId,
+      paymentUrl,
+      paymentType: PAYMENT_TYPE.CLASS,
       expireAt: expireAt.toISOString(),
     })
 
@@ -226,6 +269,45 @@ const vnpReturn = async (query) => {
         url: redirectUrl,
       }
     }
+
+    if (dataToSaveRedis.paymentType === PAYMENT_TYPE.CLASS) {
+      const { userId, classId } = dataToSaveRedis
+      if (vnp_TransactionStatus === '02') {
+        await deleteLinkPaymentTemp(vnp_TxnRef)
+
+        return {
+          success: false,
+          url: `${env.FE_URL}/user/payment/failed`,
+        }
+      }
+
+      // create class enrollment
+      // "classId": "68dfb0a182f64303648ccabc",
+      // "userId": "68ba6bdcf9c9e7b2c118b999",
+      // "paymentStatus": "paid",
+      // "price": 300000,
+      // "status": "active"
+      await classEnrollmentService.addClassEnrollment({
+        classId,
+        userId,
+        paymentStatus: PAYMENT_STATUS.PAID,
+        price: vnp_Amount,
+        status: CLASS_ENROLLMENT_STATUS.ACTIVE,
+      })
+      // add id user vào các class session
+      await classSessionModel.addUserToClassSessions(userId, classId)
+      // delete redis
+      await deleteLinkPaymentTemp(vnp_TxnRef)
+
+      const baseUrl = `${env.FE_URL}/user/payment/success?`
+
+      const redirectUrl = createRedirectUrl(verify, baseUrl, 'vnpay')
+
+      return {
+        success: true,
+        url: redirectUrl,
+      }
+    }
   } catch (error) {
     throw new Error(error)
   }
@@ -234,5 +316,6 @@ const vnpReturn = async (query) => {
 export const paymentService = {
   createPaymentVnpay,
   createPaymentBookingPtVnpay,
+  createPaymentClassVnpay,
   vnpReturn,
 }

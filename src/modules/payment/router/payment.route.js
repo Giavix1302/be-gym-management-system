@@ -7,4 +7,5 @@ const Router = express.Router()
 Router.route('/vnpay/subscription/:id').post(paymentController.createPaymentVnpay)
 Router.route('/vnpay-return').get(paymentController.vnpReturn)
 Router.route('/vnpay/booking').post(paymentController.createPaymentBookingPtVnpay)
+Router.route('/vnpay/class').post(paymentController.createPaymentClassVnpay)
 export const paymentRoute = Router

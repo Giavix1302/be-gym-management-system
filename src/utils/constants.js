@@ -47,6 +47,7 @@ export const CHECKIN_METHOD = {
 export const PAYMENT_TYPE = {
   MEMBERSHIP: 'membership',
   BOOKING: 'booking',
+  CLASS: 'class',
 }
 
 export const PAYMENT_METHOD = {
@@ -72,4 +73,17 @@ export const SPECIALIZATION_TYPE = {
   BOXING: 'boxing',
   YOGA: 'yoga',
   DANCE: 'dance',
+}
+
+export const CLASS_TYPE = {
+  BOXING: 'boxing',
+  YOGA: 'yoga',
+  DANCE: 'dance',
+}
+
+export const CLASS_ENROLLMENT_STATUS = {
+  PENDING: 'pending',
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
 }

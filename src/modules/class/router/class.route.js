@@ -1,15 +1,26 @@
 import express from 'express'
 import { classController } from '../controller/class.controller'
-import { upload } from '~/config/cloudinary.config'
 import { classValidation } from '../validation/class.validation'
+import { upload } from '~/config/cloudinary.config'
+import { authMiddleware } from '~/middlewares/auth.middleware'
 
 const Router = express.Router()
 
-Router.route('/').post(upload.array('classImgs', 6), classController.createNew)
+// Main routes
+Router.route('/').post(upload.single('image'), classController.addClass).get(classController.getListClasses)
 
+Router.route('/admin').get(classController.getListClassInfoForAdmin)
+Router.route('/user').get(classController.getListClassInfoForUser)
+
+// Specific class routes
 Router.route('/:id')
-  .get(classController.getDetail)
-  .put(classValidation.updateInfo, classController.updateInfo) // update name, phone and address
+  .get(classController.getClassDetail)
+  .put(upload.single('image'), classController.updateClass)
   .delete(classController.deleteClass)
+
+// Filter routes
+Router.route('/trainer/:trainerId').get(classController.getClassesByTrainer)
+
+Router.route('/type/:type').get(classValidation.getClassesByType, classController.getClassesByType)
 
 export const classRoute = Router

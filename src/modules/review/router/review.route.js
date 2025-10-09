@@ -5,7 +5,7 @@ import { reviewValidation } from '../validation/review.validation'
 
 const Router = express.Router()
 
-Router.route('/').post(upload.array('reviewImgs', 6), reviewController.createNew)
+Router.route('/').post(reviewController.createNew)
 
 Router.route('/:id')
   .get(reviewController.getDetail)
