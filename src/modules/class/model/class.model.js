@@ -987,7 +987,7 @@ const checkRoomScheduleConflict = async (startDate, endDate, recurrence) => {
             // Lookup room and class details for better conflict reporting
             const roomDetails = await db.collection(roomModel.ROOM_COLLECTION_NAME).findOne({ _id: roomObjectId })
 
-            const classDetails = await db.collection(classModel.CLASS_COLLECTION_NAME).findOne({ _id: session.classId })
+            const classDetails = await db.collection(CLASS_COLLECTION_NAME).findOne({ _id: session.classId })
 
             allConflicts.push({
               roomId: roomId,
@@ -1093,7 +1093,7 @@ const checkPTScheduleConflict = async (trainers, startDate, endDate, recurrence)
 
           if (hasTimeOverlap) {
             // Lookup class details for better conflict reporting
-            const classDetails = await db.collection(classModel.CLASS_COLLECTION_NAME).findOne({ _id: session.classId })
+            const classDetails = await db.collection(CLASS_COLLECTION_NAME).findOne({ _id: session.classId })
 
             // Lookup room details
             const roomDetails = await db.collection(roomModel.ROOM_COLLECTION_NAME).findOne({ _id: session.roomId })
