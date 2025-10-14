@@ -78,6 +78,27 @@ const getBookingById = async (bookingId) => {
   }
 }
 
+const getBookingsByTrainerId = async (trainerId) => {
+  try {
+    const bookings = await bookingModel.getBookingsByTrainerId(trainerId)
+
+    if (bookings === null) {
+      return {
+        success: false,
+        message: 'Booking not found',
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Booking retrieved successfully',
+      bookings,
+    }
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 const getBookingsByUserId = async (userId) => {
   try {
     // Validate user exists
@@ -263,4 +284,5 @@ export const bookingService = {
   deleteBooking,
   softDeleteBooking,
   cancelBooking,
+  getBookingsByTrainerId,
 }

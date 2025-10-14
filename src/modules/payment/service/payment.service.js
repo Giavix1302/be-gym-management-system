@@ -287,7 +287,7 @@ const vnpReturn = async (query) => {
       // "paymentStatus": "paid",
       // "price": 300000,
       // "status": "active"
-      await classEnrollmentService.addClassEnrollment({
+      const getNew = await classEnrollmentService.addClassEnrollment({
         classId,
         userId,
         paymentStatus: PAYMENT_STATUS.PAID,
@@ -296,6 +296,17 @@ const vnpReturn = async (query) => {
       })
       // add id user vào các class session
       await classSessionModel.addUserToClassSessions(userId, classId)
+
+      // create payment
+      await paymentModel.createNew({
+        userId: userId.toString(),
+        referenceId: getNew.enrollment._id.toString(),
+        paymentType: PAYMENT_TYPE.CLASS,
+        amount: vnp_Amount,
+        paymentDate: convertVnpayDateToISO(vnp_PayDate),
+        paymentMethod: PAYMENT_METHOD.VNPAY,
+        description: vnp_OrderInfo,
+      })
       // delete redis
       await deleteLinkPaymentTemp(vnp_TxnRef)
 

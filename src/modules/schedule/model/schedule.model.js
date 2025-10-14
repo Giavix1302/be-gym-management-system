@@ -60,27 +60,27 @@ const getListScheduleByTrainerId = async (trainerId) => {
             _destroy: false,
           },
         },
-        // Left join with bookings to get booking info and user reference
+        // Left join with bookings to get booking info
         {
           $lookup: {
-            from: 'bookings', // or BOOKING_COLLECTION_NAME
+            from: 'bookings',
             localField: '_id',
             foreignField: 'scheduleId',
-            as: 'booking',
+            as: 'bookingData',
           },
         },
-        // Unwind booking array (use preserveNullAndEmptyArrays for left join behavior)
+        // Unwind booking array (preserveNullAndEmptyArrays allows unbooked schedules)
         {
           $unwind: {
-            path: '$booking',
+            path: '$bookingData',
             preserveNullAndEmptyArrays: true,
           },
         },
-        // Left join with users to get member fullName
+        // Left join with users to get user information
         {
           $lookup: {
-            from: 'users', // or USER_COLLECTION_NAME
-            localField: 'booking.userId',
+            from: 'users',
+            localField: 'bookingData.userId',
             foreignField: '_id',
             as: 'user',
           },
@@ -92,11 +92,11 @@ const getListScheduleByTrainerId = async (trainerId) => {
             preserveNullAndEmptyArrays: true,
           },
         },
-        // Left join with locations to get location name
+        // Left join with locations to get location details
         {
           $lookup: {
-            from: 'locations', // or LOCATION_COLLECTION_NAME
-            localField: 'booking.locationId',
+            from: 'locations',
+            localField: 'bookingData.locationId',
             foreignField: '_id',
             as: 'location',
           },
@@ -108,25 +108,83 @@ const getListScheduleByTrainerId = async (trainerId) => {
             preserveNullAndEmptyArrays: true,
           },
         },
-        // Project the final structure with required fields
+        // Left join with reviews to get review data
         {
-          $project: {
-            _id: 1,
-            trainerId: 1,
-            startTime: 1,
-            endTime: 1,
-            location: {
-              $ifNull: ['$location.name', ''],
-            },
-            member: {
-              $ifNull: ['$user.fullName', ''],
-            },
-            note: {
-              $ifNull: ['$booking.note', ''],
+          $lookup: {
+            from: 'reviews',
+            localField: 'bookingData._id',
+            foreignField: 'bookingId',
+            as: 'reviewData',
+          },
+        },
+        // Add calculated field for review
+        {
+          $addFields: {
+            bookingReview: {
+              $cond: {
+                if: { $gt: [{ $size: '$reviewData' }, 0] },
+                then: { $arrayElemAt: ['$reviewData', 0] },
+                else: null,
+              },
             },
           },
         },
-        // Sort by start time (optional)
+        // Project the final structure
+        {
+          $project: {
+            _id: 1,
+            startTime: 1,
+            endTime: 1,
+            // Add title field - 'Lịch chưa được đặt' for unbooked, booking title for booked
+            title: {
+              $cond: {
+                if: { $ne: ['$bookingData', null] },
+                then: '$bookingData.title',
+                else: 'Lịch chưa được đặt',
+              },
+            },
+            // Only include booking object if booking exists
+            booking: {
+              $cond: {
+                if: { $ne: ['$bookingData', null] },
+                then: {
+                  bookingId: '$bookingData._id',
+                  userInfo: {
+                    fullName: '$user.fullName',
+                    phone: '$user.phone',
+                    avatar: '$user.avatar',
+                  },
+                  locationName: '$location.name',
+                  address: {
+                    street: '$location.address.street',
+                    ward: '$location.address.ward',
+                    province: '$location.address.province',
+                  },
+                  status: '$bookingData.status',
+                  note: '$bookingData.note',
+                  price: '$bookingData.price',
+                  title: '$bookingData.title',
+                  trainerAdvice: '$bookingData.trainerAdvice',
+                  review: {
+                    $cond: {
+                      if: { $ne: ['$bookingReview', null] },
+                      then: {
+                        rating: '$bookingReview.rating',
+                        comment: '$bookingReview.comment',
+                      },
+                      else: {
+                        rating: null,
+                        comment: '',
+                      },
+                    },
+                  },
+                },
+                else: '$$REMOVE', // Remove booking field if no booking exists
+              },
+            },
+          },
+        },
+        // Sort by start time
         {
           $sort: {
             startTime: 1,

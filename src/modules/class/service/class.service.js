@@ -1,4 +1,4 @@
-import { generateClassSessions, isValidDateRange } from '~/utils/utils'
+import { generateClassSessions, getDayName, isValidDateRange } from '~/utils/utils'
 import { classModel } from '../model/class.model'
 import { classSessionModel } from '~/modules/classSession/model/classSession.model'
 
@@ -19,6 +19,38 @@ const addClass = async (req) => {
     // Check startDate > endDate
     if (!isValidDateRange(classToAdd.startDate, classToAdd.endDate))
       return { success: false, message: 'Start date must be earlier than end date.' }
+
+    // check conflict room and time
+    const conflictRoom = await classModel.checkRoomScheduleConflict(
+      classToAdd.startDate,
+      classToAdd.endDate,
+      classToAdd.recurrence
+    )
+    if (conflictRoom.hasConflict) {
+      let messageError = `Found ${conflictRoom?.conflictCount} conflict(s)`
+      conflictRoom.conflicts.forEach((conflict) => {
+        messageError += ` Conflict in ${conflict.roomName} on ${getDayName(conflict.dayOfWeek)}`
+      })
+
+      return { success: false, message: messageError }
+    }
+    // check conflict schedule PT
+    const conflictPT = await classModel.checkPTScheduleConflict(
+      classToAdd.trainers,
+      classToAdd.startDate,
+      classToAdd.endDate,
+      classToAdd.recurrence
+    )
+    if (conflictPT.hasConflict) {
+      return { success: false, message: `${conflictPT.trainersWithConflicts} trainer(s) have conflicts` }
+      // console.log()
+      // console.log(`Total conflicts: ${result.totalConflictCount}`)
+
+      // // Check specific trainer
+      // Object.values(result.trainerDetails).forEach((trainer) => {
+      //   console.log(`${trainer.name} has ${trainer.conflictCount} conflicts`)
+      // })
+    }
 
     // Create class
     const result = await classModel.createNew(classToAdd)
@@ -55,7 +87,7 @@ const addClass = async (req) => {
 
 const getListClasses = async () => {
   try {
-    const list = await classModel.getListWithDetails()
+    const list = await classModel.getList()
 
     return {
       success: true,
@@ -100,6 +132,21 @@ const getListClassInfoForUser = async () => {
   }
 }
 
+const getListClassInfoForTrainer = async (trainerId) => {
+  try {
+    const list = await classModel.getListClassInfoForTrainer(trainerId)
+
+    return {
+      success: true,
+      message: 'Get list classes successfully',
+      classes: list,
+    }
+  } catch (error) {
+    console.error('Error in getListClasses service:', error)
+    throw new Error(error)
+  }
+}
+
 const getClassDetail = async (classId) => {
   try {
     const classDetail = await classModel.getDetailById(classId)
@@ -125,14 +172,16 @@ const getClassDetail = async (classId) => {
 const updateClass = async (req) => {
   try {
     const classId = req.params.id
+    const { name, description, capacity, trainers } = req.body
+
     const image = req.file
-    const { trainers, recurrence, ...rest } = req.body
 
     const updateData = {
-      ...rest,
+      name,
+      description,
+      capacity,
       ...(image && { image: image.path }),
       ...(trainers && { trainers: JSON.parse(trainers) }),
-      ...(recurrence && { recurrence: JSON.parse(recurrence) }),
       updatedAt: Date.now(),
     }
 
@@ -172,22 +221,6 @@ const deleteClass = async (classId) => {
   }
 }
 
-const getClassesByTrainer = async (trainerId) => {
-  try {
-    const classes = await classModel.getClassesByTrainer(trainerId)
-
-    return {
-      success: true,
-      message: 'Get classes by trainer successfully',
-      classes: classes,
-      total: classes.length,
-    }
-  } catch (error) {
-    console.error('Error in getClassesByTrainer service:', error)
-    throw new Error(error)
-  }
-}
-
 const getClassesByType = async (classType) => {
   try {
     const classes = await classModel.getClassesByType(classType)
@@ -204,14 +237,31 @@ const getClassesByType = async (classType) => {
   }
 }
 
+const getMemberEnrolledClasses = async (userId) => {
+  try {
+    const classes = await classModel.getMemberEnrolledClasses(userId)
+
+    return {
+      success: true,
+      message: 'Get classes successfully',
+      classes: classes,
+      total: classes.length,
+    }
+  } catch (error) {
+    console.error('Error in getClassesByType service:', error)
+    throw new Error(error)
+  }
+}
+
 export const classService = {
   addClass,
   getListClasses,
   getClassDetail,
   updateClass,
   deleteClass,
-  getClassesByTrainer,
   getClassesByType,
   getListClassInfoForAdmin,
   getListClassInfoForUser,
+  getMemberEnrolledClasses,
+  getListClassInfoForTrainer,
 }

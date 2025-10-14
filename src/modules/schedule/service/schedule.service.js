@@ -37,18 +37,10 @@ const createNew = async (req) => {
 
     const listSchedule = await scheduleModel.getListScheduleByTrainerId(trainerId)
 
-    const sanitizedList = listSchedule.map((schedule) => {
-      const cleanSchedule = sanitize(schedule, ['trainerId'])
-      return {
-        ...cleanSchedule,
-        title: cleanSchedule.member ? `Lịch đã được đặt bởi ${cleanSchedule.member}` : 'Lịch chưa được đặt',
-      }
-    })
-
     return {
       success: true,
       message: 'schedule created successfully',
-      listSchedule: sanitizedList,
+      listSchedule,
     }
   } catch (error) {
     throw new Error(error)
@@ -64,19 +56,11 @@ const getListScheduleByTrainerId = async (trainerId) => {
 
     const listSchedule = await scheduleModel.getListScheduleByTrainerId(trainerId)
 
-    const sanitizedList = listSchedule.map((schedule) => {
-      const cleanSchedule = sanitize(schedule, ['trainerId'])
-      return {
-        ...cleanSchedule,
-        title: cleanSchedule.member ? `Lịch đã được đặt bởi ${cleanSchedule.member}` : 'Lịch chưa được đặt',
-      }
-    })
-
     return {
       success: true,
       message: 'List schedule got successfully',
       trainerId,
-      listSchedule: sanitizedList,
+      listSchedule,
     }
   } catch (error) {
     throw new Error(error)

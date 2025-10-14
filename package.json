@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon --exec babel-node ./src/server.js",
     "build": "npm run build-babel",
-    "build-babel": "babel ./src -d ./build/src",
+    "build-babel": "npx babel ./src -d ./build/src",
     "production": "npm run build && cross-env BUILD_MODE=production node ./build/src/server.js",
     "start": "npm run production",
     "lint": "eslint ./src"

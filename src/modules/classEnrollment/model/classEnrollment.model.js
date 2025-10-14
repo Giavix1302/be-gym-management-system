@@ -4,6 +4,8 @@ import { GET_DB } from '~/config/mongodb.config.js'
 import { BOOKING_STATUS, CLASS_ENROLLMENT_STATUS, PAYMENT_STATUS } from '~/utils/constants.js'
 import { subscriptionModel } from '~/modules/subscription/model/subscription.model'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import { classSessionModel } from '~/modules/classSession/model/classSession.model'
+import { bookingModel } from '~/modules/booking/model/booking.model'
 
 const CLASS_ENROLLMENT_COLLECTION_NAME = 'class_enrollments'
 const CLASS_ENROLLMENT_COLLECTION_SCHEMA = Joi.object({
@@ -137,7 +139,7 @@ const checkScheduleConflict = async (userId, classId) => {
 
     // Get all future class sessions for the target class
     const classSessions = await db
-      .collection('class_sessions')
+      .collection(classSessionModel.CLASS_SESSION_COLLECTION_NAME)
       .find({
         classId: new ObjectId(String(classId)),
         _destroy: false,
@@ -152,7 +154,7 @@ const checkScheduleConflict = async (userId, classId) => {
 
     // Get all future bookings for this user
     const userBookings = await db
-      .collection('bookings')
+      .collection(bookingModel.BOOKING_COLLECTION_NAME)
       .aggregate([
         {
           $match: {

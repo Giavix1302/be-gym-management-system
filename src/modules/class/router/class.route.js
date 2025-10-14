@@ -10,7 +10,9 @@ const Router = express.Router()
 Router.route('/').post(upload.single('image'), classController.addClass).get(classController.getListClasses)
 
 Router.route('/admin').get(classController.getListClassInfoForAdmin)
+
 Router.route('/user').get(classController.getListClassInfoForUser)
+Router.route('/user/:userId').get(classController.getMemberEnrolledClasses)
 
 // Specific class routes
 Router.route('/:id')
@@ -19,7 +21,7 @@ Router.route('/:id')
   .delete(classController.deleteClass)
 
 // Filter routes
-Router.route('/trainer/:trainerId').get(classController.getClassesByTrainer)
+Router.route('/trainer/:id').get(classController.getListClassInfoForTrainer)
 
 Router.route('/type/:type').get(classValidation.getClassesByType, classController.getClassesByType)
 

@@ -9,7 +9,7 @@ Router.route('/')
   .get(classSessionController.getListClassSession)
 
 Router.route('/:id')
-  .put(authMiddleware, classSessionController.updateClassSession)
+  .put(classSessionController.updateClassSession)
   .delete(authMiddleware, classSessionController.deleteClassSession)
 
 export const classSessionRoute = Router

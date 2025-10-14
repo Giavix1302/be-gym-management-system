@@ -139,6 +139,10 @@ export const generateClassSessions = (classId, startDate, endDate, recurrenceArr
       const sessionEnd = new Date(currentDate)
       sessionEnd.setHours(endTime.hour, endTime.minute, 0, 0)
 
+      // Calculate hours (duration in hours)
+      const durationMs = sessionEnd - sessionStart
+      const hours = durationMs / (1000 * 60 * 60) // Convert milliseconds to hours
+
       // Only create session if it's in the future
       if (sessionStart > now) {
         sessions.push({
@@ -148,6 +152,7 @@ export const generateClassSessions = (classId, startDate, endDate, recurrenceArr
           roomId: roomId,
           startTime: sessionStart.toISOString(),
           endTime: sessionEnd.toISOString(),
+          hours: hours, // Added hours field
           title: `${className} - ${getDayName(dayOfWeek)} ${formatTime(startTime)}-${formatTime(endTime)}`,
         })
       }

@@ -25,11 +25,6 @@ const START_APP = () => {
   // router
   app.use('/v1', APIs_V1)
 
-  // Route mặc định
-  app.get('/', (req, res) => {
-    res.json({ message: 'Server is running!' })
-  })
-
   // Lấy PORT từ biến môi trường hoặc mặc định là 3000
   const PORT = process.env.PORT || 3000
 

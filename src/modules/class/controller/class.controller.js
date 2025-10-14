@@ -57,6 +57,21 @@ const getListClassInfoForUser = async (req, res, next) => {
   }
 }
 
+const getListClassInfoForTrainer = async (req, res, next) => {
+  try {
+    const trainerId = req.params.id
+    const result = await classService.getListClassInfoForTrainer(trainerId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 const getClassDetail = async (req, res, next) => {
   try {
     const classId = req.params.id
@@ -101,10 +116,10 @@ const deleteClass = async (req, res, next) => {
   }
 }
 
-const getClassesByTrainer = async (req, res, next) => {
+const getClassesByType = async (req, res, next) => {
   try {
-    const trainerId = req.params.trainerId
-    const result = await classService.getClassesByTrainer(trainerId)
+    const classType = req.params.type
+    const result = await classService.getClassesByType(classType)
 
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
@@ -116,10 +131,10 @@ const getClassesByTrainer = async (req, res, next) => {
   }
 }
 
-const getClassesByType = async (req, res, next) => {
+const getMemberEnrolledClasses = async (req, res, next) => {
   try {
-    const classType = req.params.type
-    const result = await classService.getClassesByType(classType)
+    const userId = req.params.userId
+    const result = await classService.getMemberEnrolledClasses(userId)
 
     if (result.success) {
       res.status(StatusCodes.OK).json(result)
@@ -137,8 +152,9 @@ export const classController = {
   getClassDetail,
   updateClass,
   deleteClass,
-  getClassesByTrainer,
   getClassesByType,
   getListClassInfoForAdmin,
   getListClassInfoForUser,
+  getMemberEnrolledClasses,
+  getListClassInfoForTrainer,
 }

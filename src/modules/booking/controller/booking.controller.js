@@ -30,6 +30,21 @@ const getBookingById = async (req, res, next) => {
   }
 }
 
+const getBookingsByTrainerId = async (req, res, next) => {
+  try {
+    const trainerId = req.params.id
+    const result = await bookingService.getBookingsByTrainerId(trainerId)
+
+    if (result.success) {
+      res.status(StatusCodes.OK).json(result)
+    } else {
+      res.status(StatusCodes.NOT_FOUND).json(result)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 const getUpcomingBookingsByUserId = async (req, res, next) => {
   try {
     const userId = req.params.userId
@@ -157,4 +172,5 @@ export const bookingController = {
   deleteBooking,
   softDeleteBooking,
   cancelBooking,
+  getBookingsByTrainerId,
 }

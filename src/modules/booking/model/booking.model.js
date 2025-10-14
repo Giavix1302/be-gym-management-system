@@ -16,6 +16,14 @@ const BOOKING_COLLECTION_SCHEMA = Joi.object({
   price: Joi.number().min(0).required(),
   title: Joi.string().trim().strict().allow('').default(''),
   note: Joi.string().trim().strict().allow('').default(''),
+  trainerAdvice: Joi.array()
+    .items(
+      Joi.object({
+        title: Joi.string().trim().strict(),
+        content: Joi.array().items(Joi.string().trim().strict()),
+      })
+    )
+    .default([]),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -570,6 +578,7 @@ const getHistoryBookingsByUserId = async (userId) => {
             },
             price: 1,
             note: 1,
+            trainerAdvice: 1,
             trainer: {
               trainerId: '$trainer._id',
               userInfo: {
@@ -694,6 +703,131 @@ const softDeleteBooking = async (bookingId) => {
   }
 }
 
+const getBookingsByTrainerId = async (trainerId) => {
+  try {
+    const result = await GET_DB()
+      .collection(BOOKING_COLLECTION_NAME)
+      .aggregate([
+        // Step 1: Join with schedules to get schedule information
+        {
+          $lookup: {
+            from: 'schedules',
+            localField: 'scheduleId',
+            foreignField: '_id',
+            as: 'schedule',
+          },
+        },
+        // Unwind schedule array
+        {
+          $unwind: '$schedule',
+        },
+        // Step 2: Filter bookings by trainerId from schedule
+        {
+          $match: {
+            'schedule.trainerId': new ObjectId(String(trainerId)),
+            _destroy: false,
+            'schedule._destroy': false,
+          },
+        },
+        // Step 3: Join with users collection to get user information
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        // Unwind user array
+        {
+          $unwind: '$user',
+        },
+        // Step 4: Join with locations collection to get location details
+        {
+          $lookup: {
+            from: 'locations',
+            localField: 'locationId',
+            foreignField: '_id',
+            as: 'location',
+          },
+        },
+        // Unwind location array
+        {
+          $unwind: '$location',
+        },
+        // Step 5: Join with reviews collection (left join - review may not exist)
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: '_id',
+            foreignField: 'bookingId',
+            as: 'reviewData',
+          },
+        },
+        // Step 6: Add calculated fields for review
+        {
+          $addFields: {
+            bookingReview: {
+              $cond: {
+                if: { $gt: [{ $size: '$reviewData' }, 0] },
+                then: { $arrayElemAt: ['$reviewData', 0] },
+                else: null,
+              },
+            },
+          },
+        },
+        // Step 7: Project the final structure to match the required data format
+        {
+          $project: {
+            _id: 1,
+            userInfo: {
+              fullName: '$user.fullName',
+              phone: '$user.phone',
+              avatar: '$user.avatar',
+            },
+            startTime: '$schedule.startTime',
+            endTime: '$schedule.endTime',
+            locationName: '$location.name',
+            address: {
+              street: '$location.address.street',
+              ward: '$location.address.ward',
+              province: '$location.address.province',
+            },
+            status: 1,
+            note: 1,
+            price: 1,
+            title: 1,
+            trainerAdvice: 1,
+            review: {
+              $cond: {
+                if: { $ne: ['$bookingReview', null] },
+                then: {
+                  rating: '$bookingReview.rating',
+                  comment: '$bookingReview.comment',
+                },
+                else: {
+                  rating: null,
+                  comment: '',
+                },
+              },
+            },
+          },
+        },
+        // Step 8: Sort by start time (most recent first)
+        {
+          $sort: {
+            startTime: -1,
+          },
+        },
+      ])
+      .toArray()
+
+    return result
+  } catch (error) {
+    throw new Error(`Error fetching bookings by trainer: ${error.message}`)
+  }
+}
+
 export const bookingModel = {
   BOOKING_COLLECTION_NAME,
   BOOKING_COLLECTION_SCHEMA,
@@ -708,4 +842,5 @@ export const bookingModel = {
   updateInfo,
   deleteBooking,
   softDeleteBooking,
+  getBookingsByTrainerId,
 }

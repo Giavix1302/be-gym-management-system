@@ -15,7 +15,7 @@ Router.route('/')
 // Route for specific booking by ID: /api/bookings/:id
 Router.route('/:id')
   // Get booking by ID
-  .get(authMiddleware, bookingValidation.validateBookingId, bookingController.getBookingById)
+  .get(bookingValidation.validateBookingId, bookingController.getBookingById)
   // Update booking by ID
   .put(
     authMiddleware,
@@ -25,6 +25,8 @@ Router.route('/:id')
   )
   // Delete booking by ID (hard delete)
   .delete(authMiddleware, bookingValidation.validateBookingId, bookingController.deleteBooking)
+
+Router.route('/trainer/:id').get(bookingController.getBookingsByTrainerId)
 
 // Route for user's bookings: /api/bookings/user/:userId
 Router.route('/user/:userId').get(authMiddleware, bookingController.getBookingsByUserId)

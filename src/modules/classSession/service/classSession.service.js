@@ -45,9 +45,78 @@ const updateClassSession = async (req) => {
   try {
     const sessionId = req.params.id
 
+    const classInfo = await classSessionModel.getDetailById(sessionId)
+
     const updateData = {
       ...req.body,
+
       updatedAt: Date.now(),
+    }
+    // update PT (kitrem tra khoản thời gian này pt có bị conflict không)
+
+    // update room and schedule (kt xem khoảng time của lớp đó có conflict không)
+
+    // update schedule (kt xem khoảng time của lớp đó có conflict không)
+
+    // update room ( kt xem khoảng time của lớp đó có conflict không)
+
+    // check schedule conflict room
+
+    const arrTrainers = Array.isArray(updateData.trainers) ? updateData.trainers : []
+
+    if (arrTrainers.length > 0) {
+      // Check each trainer individually for conflicts
+      for (const trainerId of arrTrainers) {
+        // Check if this trainer exists in the class and has no schedule conflicts
+        const conflictPt = await classSessionModel.checkPTScheduleConflict(
+          trainerId,
+          updateData.startTime,
+          updateData.endTime,
+          classInfo.classId
+        )
+
+        if (conflictPt.hasConflict) {
+          // Return detailed error based on conflict type
+          if (conflictPt.typeError === 'trainer_not_assigned') {
+            return {
+              success: false,
+              message: conflictPt.message,
+              trainerId: trainerId,
+              trainerName: conflictPt.trainerName,
+            }
+          } else if (conflictPt.typeError === 'schedule_conflict') {
+            return {
+              success: false,
+              message: conflictPt.message,
+              trainerId: trainerId,
+              trainerName: conflictPt.trainerInfo.name,
+              conflicts: conflictPt.conflicts,
+            }
+          } else {
+            return {
+              success: false,
+              message: conflictPt.message,
+            }
+          }
+        }
+      }
+    }
+
+    if (updateData.roomId) {
+      //
+      const conflictRoom = await classSessionModel.checkRoomScheduleConflict(
+        sessionId,
+        updateData.startTime,
+        updateData.endTime,
+        updateData.roomId
+      )
+      if (conflictRoom.hasConflict) {
+        let messageError = `Conflict found: ${conflictRoom.message}`
+        conflictRoom.conflicts.forEach((conflict) => {
+          messageError += ` - ${conflict.className} at ${conflict.startTime}`
+        })
+        return { success: false, message: messageError }
+      }
     }
 
     console.log('🚀 ~ updateClassSession ~ updateData:', updateData)

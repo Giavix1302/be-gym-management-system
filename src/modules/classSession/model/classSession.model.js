@@ -7,6 +7,9 @@ import { trainerModel } from '~/modules/trainer/model/trainer.model'
 import { userModel } from '~/modules/user/model/user.model'
 import { roomModel } from '~/modules/room/model/room.model'
 import { classModel } from '~/modules/class/model/class.model'
+import { locationModel } from '~/modules/location/model/location.model'
+import { bookingModel } from '~/modules/booking/model/booking.model'
+import { scheduleModel } from '~/modules/schedule/model/schedule.model'
 
 const CLASS_SESSION_COLLECTION_NAME = 'class_sessions'
 const CLASS_SESSION_COLLECTION_SCHEMA = Joi.object({
@@ -19,6 +22,7 @@ const CLASS_SESSION_COLLECTION_SCHEMA = Joi.object({
   startTime: Joi.string().isoDate().required(),
   endTime: Joi.string().isoDate().required(),
   title: Joi.string().trim().strict().required(),
+  hours: Joi.number().min(1).required(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -310,6 +314,321 @@ const getSessionsByRoom = async (roomId) => {
   }
 }
 
+// startTime: '2025-10-06T12:00:00.000Z',
+// endTime: '2025-10-06T13:00:00.000Z',
+// trainers:'68d3ad9592b0108bfae55892',
+// Updated function signature: now accepts single trainerId
+// startTime: '2025-10-06T12:00:00.000Z',
+// endTime: '2025-10-06T13:00:00.000Z',
+// trainerId: '68d3ad9592b0108bfae55892',
+// classId: '68d3ad9592b0108bfae55893' (the class being checked/updated)
+const checkPTScheduleConflict = async (trainerId, startTime, endTime, classId) => {
+  try {
+    const db = await GET_DB()
+
+    // Convert trainer ID to ObjectId
+    const trainerObjectId = new ObjectId(String(trainerId))
+    const classObjectId = new ObjectId(String(classId))
+
+    // 1. Get the class details to verify trainer belongs to this class
+    const classDetails = await db
+      .collection(classModel.CLASS_COLLECTION_NAME)
+      .findOne({ _id: classObjectId, _destroy: false })
+
+    if (!classDetails) {
+      throw new Error('Class not found')
+    }
+
+    // 2. Check if the trainer is assigned to this class
+    const classTrainerIds = classDetails.trainers.map((id) => id.toString())
+
+    if (!classTrainerIds.includes(trainerObjectId.toString())) {
+      // Get trainer details for better error message
+      const trainerDetails = await db
+        .collection(trainerModel.TRAINER_COLLECTION_NAME)
+        .findOne({ _id: trainerObjectId })
+
+      if (!trainerDetails) {
+        return {
+          hasConflict: true,
+          typeError: 'trainer_not_found',
+          message: 'Trainer not found',
+        }
+      }
+
+      // Get user details
+      const user = await db.collection(userModel.USER_COLLECTION_NAME).findOne({ _id: trainerDetails.userId })
+
+      const trainerName = user?.fullName || 'Unknown Trainer'
+
+      return {
+        hasConflict: true,
+        typeError: 'trainer_not_assigned',
+        message: `Trainer "${trainerName}" is not assigned to this class. Please assign them to the class first.`,
+        trainerId: trainerId,
+        trainerName: trainerName,
+      }
+    }
+
+    // 3. Parse and validate the time range
+    const sessionStart = new Date(startTime)
+    const sessionEnd = new Date(endTime)
+
+    if (isNaN(sessionStart.getTime()) || isNaN(sessionEnd.getTime())) {
+      throw new Error('Invalid startTime or endTime')
+    }
+
+    if (sessionStart >= sessionEnd) {
+      throw new Error('startTime must be before endTime')
+    }
+
+    const startISO = sessionStart.toISOString()
+    const endISO = sessionEnd.toISOString()
+
+    // Store all conflicts found
+    const allConflicts = []
+
+    // 4. Check conflicts with OTHER CLASS SESSIONS
+    // Note: We exclude sessions from the SAME class to avoid false positives
+    const existingClassSessions = await db
+      .collection(CLASS_SESSION_COLLECTION_NAME)
+      .find({
+        trainers: trainerObjectId,
+        classId: { $ne: classObjectId }, // Exclude same class
+        _destroy: false,
+        // Time overlap: existing.start < newEnd && existing.end > newStart
+        startTime: { $lt: endISO },
+        endTime: { $gt: startISO },
+      })
+      .toArray()
+
+    for (const session of existingClassSessions) {
+      // Lookup class and room details
+      const sessionClass = await db
+        .collection(classModel.CLASS_COLLECTION_NAME)
+        .findOne({ _id: session.classId })
+
+      const roomDetails = await db.collection(roomModel.ROOM_COLLECTION_NAME).findOne({ _id: session.roomId })
+
+      allConflicts.push({
+        type: 'CLASS_SESSION',
+        conflictingSession: {
+          sessionId: session._id,
+          classId: session.classId,
+          className: sessionClass?.name || 'Unknown Class',
+          title: session.title,
+          roomName: roomDetails?.name || 'Unknown Room',
+          startTime: session.startTime,
+          endTime: session.endTime,
+        },
+      })
+    }
+
+    // 5. Check conflicts with BOOKINGS (through schedules)
+    const trainerSchedules = await db
+      .collection(scheduleModel.SCHEDULE_COLLECTION_NAME)
+      .find({
+        trainerId: trainerObjectId,
+        _destroy: false,
+        // Time overlap: existing.start < newEnd && existing.end > newStart
+        startTime: { $lt: endISO },
+        endTime: { $gt: startISO },
+      })
+      .toArray()
+
+    for (const schedule of trainerSchedules) {
+      // Check if this schedule has an active booking
+      const booking = await db.collection(bookingModel.BOOKING_COLLECTION_NAME).findOne({
+        scheduleId: schedule._id,
+        _destroy: false,
+      })
+
+      // Get user and location details if booking exists
+      let userDetails = null
+      let locationDetails = null
+
+      if (booking) {
+        userDetails = await db.collection(userModel.USER_COLLECTION_NAME).findOne({ _id: booking.userId })
+
+        locationDetails = await db
+          .collection(locationModel.LOCATION_COLLECTION_NAME)
+          .findOne({ _id: booking.locationId })
+      }
+
+      allConflicts.push({
+        type: 'BOOKING',
+        conflictingBooking: {
+          scheduleId: schedule._id,
+          bookingId: booking?._id || null,
+          isBooked: !!booking,
+          clientName: userDetails?.fullName || 'Available slot',
+          locationName: locationDetails?.name || '',
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          bookingStatus: booking?.status || 'AVAILABLE',
+        },
+      })
+    }
+
+    // 6. Get trainer details for the response
+    if (allConflicts.length > 0) {
+      const trainerDetails = await db
+        .collection(trainerModel.TRAINER_COLLECTION_NAME)
+        .findOne({ _id: trainerObjectId })
+
+      // Get user details for trainer
+      const user = await db
+        .collection(userModel.USER_COLLECTION_NAME)
+        .findOne({ _id: trainerDetails?.userId })
+
+      return {
+        hasConflict: true,
+        totalConflictCount: allConflicts.length,
+        typeError: 'schedule_conflict',
+        trainerInfo: {
+          trainerId: trainerId,
+          name: user?.fullName || 'Unknown Trainer',
+          specialization: trainerDetails?.specialization || '',
+        },
+        conflicts: allConflicts,
+        message: `Found ${allConflicts.length} scheduling conflict(s) for this trainer`,
+      }
+    }
+
+    // No conflicts found
+    return {
+      hasConflict: false,
+      trainerId: trainerId,
+      message: 'No scheduling conflicts found for this trainer',
+    }
+  } catch (error) {
+    throw new Error(`Error checking PT schedule conflict: ${error.message}`)
+  }
+}
+
+// startTime: '2025-10-06T12:00:00.000Z',
+// endTime: '2025-10-06T13:00:00.000Z',
+// roomId: '68dbdd2f1f6ee91416652ebe',
+// startTime: '2025-10-06T12:00:00.000Z',
+// endTime: '2025-10-06T13:00:00.000Z',
+// roomId: '68dbdd2f1f6ee91416652ebe',
+// sessionId: '68dbdd2f1f6ee91416652ebf' (optional - the session being updated)
+const checkRoomScheduleConflict = async (sessionId, startTime, endTime, roomId) => {
+  try {
+    const db = await GET_DB()
+
+    // Convert roomId to ObjectId
+    const roomObjectId = new ObjectId(String(roomId))
+
+    // Parse the time range
+    const sessionStart = new Date(startTime)
+    const sessionEnd = new Date(endTime)
+
+    // Validate dates
+    if (isNaN(sessionStart.getTime()) || isNaN(sessionEnd.getTime())) {
+      throw new Error('Invalid startTime or endTime')
+    }
+
+    if (sessionStart >= sessionEnd) {
+      throw new Error('startTime must be before endTime')
+    }
+
+    const startISO = sessionStart.toISOString()
+    const endISO = sessionEnd.toISOString()
+
+    // Get room details first
+    const roomDetails = await db
+      .collection(roomModel.ROOM_COLLECTION_NAME)
+      .findOne({ _id: roomObjectId, _destroy: false })
+
+    if (!roomDetails) {
+      return {
+        hasConflict: false,
+        typeError: 'room_not_found',
+        message: 'Room not found or has been deleted',
+      }
+    }
+
+    // Build query to find conflicting sessions
+    const query = {
+      roomId: roomObjectId,
+      _destroy: false,
+      startTime: { $lt: endISO },
+      endTime: { $gt: startISO },
+    }
+
+    // CRITICAL FIX: Exclude the session itself if sessionId is provided
+    if (sessionId) {
+      query._id = { $ne: new ObjectId(String(sessionId)) }
+    }
+
+    // Find all class sessions in this room that overlap with the proposed time
+    const conflictingSessions = await db.collection(CLASS_SESSION_COLLECTION_NAME).find(query).toArray()
+
+    // If no conflicts found, return success
+    if (conflictingSessions.length === 0) {
+      return {
+        hasConflict: false,
+        roomId: roomId,
+        roomName: roomDetails.name,
+        message: 'No scheduling conflicts found for this room',
+      }
+    }
+
+    // Process conflicts with detailed information
+    const conflicts = []
+
+    for (const session of conflictingSessions) {
+      // Get class details
+      const classDetails = await db
+        .collection(classModel.CLASS_COLLECTION_NAME)
+        .findOne({ _id: session.classId })
+
+      // Get trainer details
+      const trainerDetails = await db
+        .collection(trainerModel.TRAINER_COLLECTION_NAME)
+        .find({ _id: { $in: session.trainers } })
+        .toArray()
+
+      // Get user details for trainers
+      const userIds = trainerDetails.map((t) => t.userId)
+      const users = await db
+        .collection(userModel.USER_COLLECTION_NAME)
+        .find({ _id: { $in: userIds } })
+        .toArray()
+
+      const trainerNames = trainerDetails.map((trainer) => {
+        const user = users.find((u) => u._id.equals(trainer.userId))
+        return user?.fullName || 'Unknown Trainer'
+      })
+
+      conflicts.push({
+        sessionId: session._id,
+        sessionTitle: session.title,
+        classId: session.classId,
+        className: classDetails?.name || 'Unknown Class',
+        classType: classDetails?.classType || '',
+        startTime: session.startTime,
+        endTime: session.endTime,
+        trainers: trainerNames,
+        totalUsers: session.users?.length || 0,
+      })
+    }
+
+    return {
+      hasConflict: true,
+      typeError: 'room_conflict',
+      roomId: roomId,
+      roomName: roomDetails.name,
+      roomCapacity: roomDetails.capacity,
+      conflictCount: conflicts.length,
+      conflicts: conflicts,
+      message: `Found ${conflicts.length} scheduling conflict(s) in room "${roomDetails.name}"`,
+    }
+  } catch (error) {
+    throw new Error(`Error checking room schedule conflict: ${error.message}`)
+  }
+}
 export const classSessionModel = {
   CLASS_SESSION_COLLECTION_NAME,
   CLASS_SESSION_COLLECTION_SCHEMA,
@@ -324,4 +643,6 @@ export const classSessionModel = {
   getSessionsByClass,
   getSessionsByTrainer,
   getSessionsByRoom,
+  checkPTScheduleConflict,
+  checkRoomScheduleConflict,
 }

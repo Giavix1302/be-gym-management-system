@@ -23,6 +23,11 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data, { abortEarly: false })
+
+    if (validData.locationId) {
+      validData.locationId = new ObjectId(String(validData.locationId))
+    }
+
     const createdUser = await GET_DB().collection(ROOM_COLLECTION_NAME).insertOne(validData)
     return createdUser
   } catch (error) {
