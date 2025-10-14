@@ -20,9 +20,7 @@ const CLASS_COLLECTION_SCHEMA = Joi.object({
   description: Joi.string().trim().strict().required(),
   classType: Joi.string().valid(CLASS_TYPE.BOXING, CLASS_TYPE.DANCE, CLASS_TYPE.YOGA).required(),
   image: Joi.string().trim().strict().default(''),
-  trainers: Joi.array()
-    .items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE))
-    .default([]),
+  trainers: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
   capacity: Joi.number().min(1).required(),
   startDate: Joi.string().isoDate().required(),
   endDate: Joi.string().isoDate().required(),
@@ -347,10 +345,7 @@ const getListClassInfoForUser = async () => {
                         $filter: {
                           input: '$trainerReviews',
                           cond: {
-                            $and: [
-                              { $eq: ['$$this.trainerId', '$$trainer._id'] },
-                              { $eq: ['$$this._destroy', false] },
-                            ],
+                            $and: [{ $eq: ['$$this.trainerId', '$$trainer._id'] }, { $eq: ['$$this._destroy', false] }],
                           },
                         },
                       },
@@ -632,10 +627,7 @@ const getListClassInfoForTrainer = async (trainerId) => {
                         $filter: {
                           input: '$trainerReviews',
                           cond: {
-                            $and: [
-                              { $eq: ['$$this.trainerId', '$$trainer._id'] },
-                              { $eq: ['$$this._destroy', false] },
-                            ],
+                            $and: [{ $eq: ['$$this.trainerId', '$$trainer._id'] }, { $eq: ['$$this._destroy', false] }],
                           },
                         },
                       },
@@ -849,11 +841,7 @@ const updateInfo = async (classId, updateData) => {
 
     const updatedClass = await GET_DB()
       .collection(CLASS_COLLECTION_NAME)
-      .findOneAndUpdate(
-        { _id: new ObjectId(String(classId)) },
-        { $set: updateData },
-        { returnDocument: 'after' }
-      )
+      .findOneAndUpdate({ _id: new ObjectId(String(classId)) }, { $set: updateData }, { returnDocument: 'after' })
     return updatedClass
   } catch (error) {
     throw new Error(error)
@@ -865,9 +853,7 @@ const deleteClass = async (classId) => {
     const classObjectId = new ObjectId(String(classId))
 
     // First, delete all class sessions associated with this class
-    await GET_DB()
-      .collection(classSessionModel.CLASS_SESSION_COLLECTION_NAME)
-      .deleteMany({ classId: classObjectId })
+    await GET_DB().collection(classSessionModel.CLASS_SESSION_COLLECTION_NAME).deleteMany({ classId: classObjectId })
 
     // Then, delete the class itself
     const result = await GET_DB().collection(CLASS_COLLECTION_NAME).deleteOne({ _id: classObjectId })
@@ -999,23 +985,16 @@ const checkRoomScheduleConflict = async (startDate, endDate, recurrence) => {
 
           if (hasTimeOverlap) {
             // Lookup room and class details for better conflict reporting
-            const roomDetails = await db
-              .collection(roomModel.ROOM_COLLECTION_NAME)
-              .findOne({ _id: roomObjectId })
+            const roomDetails = await db.collection(roomModel.ROOM_COLLECTION_NAME).findOne({ _id: roomObjectId })
 
-            const classDetails = await db
-              .collection(classModel.CLASS_COLLECTION_NAME)
-              .findOne({ _id: session.classId })
+            const classDetails = await db.collection(classModel.CLASS_COLLECTION_NAME).findOne({ _id: session.classId })
 
             allConflicts.push({
               roomId: roomId,
               roomName: roomDetails?.name || 'Unknown Room',
               dayOfWeek: dayOfWeek,
               proposedTimeSlot: {
-                start: `${String(startTime.hour).padStart(2, '0')}:${String(startTime.minute).padStart(
-                  2,
-                  '0'
-                )}`,
+                start: `${String(startTime.hour).padStart(2, '0')}:${String(startTime.minute).padStart(2, '0')}`,
                 end: `${String(endTime.hour).padStart(2, '0')}:${String(endTime.minute).padStart(2, '0')}`,
               },
               conflictingSession: {
@@ -1025,14 +1004,8 @@ const checkRoomScheduleConflict = async (startDate, endDate, recurrence) => {
                 startTime: session.startTime,
                 endTime: session.endTime,
                 timeSlot: {
-                  start: `${String(sessionStartHour).padStart(2, '0')}:${String(sessionStartMinute).padStart(
-                    2,
-                    '0'
-                  )}`,
-                  end: `${String(sessionEndHour).padStart(2, '0')}:${String(sessionEndMinute).padStart(
-                    2,
-                    '0'
-                  )}`,
+                  start: `${String(sessionStartHour).padStart(2, '0')}:${String(sessionStartMinute).padStart(2, '0')}`,
+                  end: `${String(sessionEndHour).padStart(2, '0')}:${String(sessionEndMinute).padStart(2, '0')}`,
                 },
               },
             })
@@ -1120,14 +1093,10 @@ const checkPTScheduleConflict = async (trainers, startDate, endDate, recurrence)
 
           if (hasTimeOverlap) {
             // Lookup class details for better conflict reporting
-            const classDetails = await db
-              .collection(classModel.CLASS_COLLECTION_NAME)
-              .findOne({ _id: session.classId })
+            const classDetails = await db.collection(classModel.CLASS_COLLECTION_NAME).findOne({ _id: session.classId })
 
             // Lookup room details
-            const roomDetails = await db
-              .collection(roomModel.ROOM_COLLECTION_NAME)
-              .findOne({ _id: session.roomId })
+            const roomDetails = await db.collection(roomModel.ROOM_COLLECTION_NAME).findOne({ _id: session.roomId })
 
             // Find which trainer(s) from our list are in this session
             const conflictingTrainers = session.trainers.filter((trainerId) =>
@@ -1147,10 +1116,7 @@ const checkPTScheduleConflict = async (trainers, startDate, endDate, recurrence)
                 type: 'CLASS_SESSION',
                 dayOfWeek: dayOfWeek,
                 proposedTimeSlot: {
-                  start: `${String(startTime.hour).padStart(2, '0')}:${String(startTime.minute).padStart(
-                    2,
-                    '0'
-                  )}`,
+                  start: `${String(startTime.hour).padStart(2, '0')}:${String(startTime.minute).padStart(2, '0')}`,
                   end: `${String(endTime.hour).padStart(2, '0')}:${String(endTime.minute).padStart(2, '0')}`,
                 },
                 conflictingSession: {
@@ -1162,13 +1128,11 @@ const checkPTScheduleConflict = async (trainers, startDate, endDate, recurrence)
                   startTime: session.startTime,
                   endTime: session.endTime,
                   timeSlot: {
-                    start: `${String(sessionStartHour).padStart(2, '0')}:${String(
-                      sessionStartMinute
-                    ).padStart(2, '0')}`,
-                    end: `${String(sessionEndHour).padStart(2, '0')}:${String(sessionEndMinute).padStart(
+                    start: `${String(sessionStartHour).padStart(2, '0')}:${String(sessionStartMinute).padStart(
                       2,
                       '0'
                     )}`,
+                    end: `${String(sessionEndHour).padStart(2, '0')}:${String(sessionEndMinute).padStart(2, '0')}`,
                   },
                 },
               }
@@ -1229,9 +1193,7 @@ const checkPTScheduleConflict = async (trainers, startDate, endDate, recurrence)
             let locationDetails = null
 
             if (booking) {
-              userDetails = await db
-                .collection(userModel.USER_COLLECTION_NAME)
-                .findOne({ _id: booking.userId })
+              userDetails = await db.collection(userModel.USER_COLLECTION_NAME).findOne({ _id: booking.userId })
 
               locationDetails = await db
                 .collection(locationModel.LOCATION_COLLECTION_NAME)
@@ -1250,10 +1212,7 @@ const checkPTScheduleConflict = async (trainers, startDate, endDate, recurrence)
               type: 'BOOKING',
               dayOfWeek: dayOfWeek,
               proposedTimeSlot: {
-                start: `${String(startTime.hour).padStart(2, '0')}:${String(startTime.minute).padStart(
-                  2,
-                  '0'
-                )}`,
+                start: `${String(startTime.hour).padStart(2, '0')}:${String(startTime.minute).padStart(2, '0')}`,
                 end: `${String(endTime.hour).padStart(2, '0')}:${String(endTime.minute).padStart(2, '0')}`,
               },
               conflictingBooking: {
@@ -1265,13 +1224,11 @@ const checkPTScheduleConflict = async (trainers, startDate, endDate, recurrence)
                 startTime: schedule.startTime,
                 endTime: schedule.endTime,
                 timeSlot: {
-                  start: `${String(scheduleStartHour).padStart(2, '0')}:${String(
-                    scheduleStartMinute
-                  ).padStart(2, '0')}`,
-                  end: `${String(scheduleEndHour).padStart(2, '0')}:${String(scheduleEndMinute).padStart(
+                  start: `${String(scheduleStartHour).padStart(2, '0')}:${String(scheduleStartMinute).padStart(
                     2,
                     '0'
                   )}`,
+                  end: `${String(scheduleEndHour).padStart(2, '0')}:${String(scheduleEndMinute).padStart(2, '0')}`,
                 },
                 bookingStatus: booking?.status || 'AVAILABLE',
               },
@@ -1460,10 +1417,7 @@ const getMemberEnrolledClasses = async (userId) => {
                         $filter: {
                           input: '$trainerReviews',
                           cond: {
-                            $and: [
-                              { $eq: ['$$this.trainerId', '$$trainer._id'] },
-                              { $eq: ['$$this._destroy', false] },
-                            ],
+                            $and: [{ $eq: ['$$this.trainerId', '$$trainer._id'] }, { $eq: ['$$this._destroy', false] }],
                           },
                         },
                       },
