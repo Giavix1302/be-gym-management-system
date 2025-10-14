@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon --exec babel-node ./src/server.js",
-    "build": "npm run build-babel",
+    "clean": "rm -rf build && rm -rf node_modules/.cache",
+    "build": "npm run clean && npm run build-babel",
     "build-babel": "npx babel ./src -d ./build/src",
     "production": "npm run build && cross-env BUILD_MODE=production node ./build/src/server.js",
     "start": "npm run production",
