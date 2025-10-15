@@ -8,6 +8,8 @@ import { CONNECT_DB } from './config/mongodb.config.js'
 import { initRedis } from '~/utils/redis.js'
 import { env } from './config/environment.config.js'
 
+import cors from 'cors'
+
 const START_APP = () => {
   // Đọc biến môi trường từ file .env
   dotenv.config()
@@ -32,7 +34,8 @@ const START_APP = () => {
 
   // Khởi động server
   app.listen(PORT, () => {
-    console.log('----------------', env.BE_URL)
+    console.log('---------------- BE', env.BE_URL)
+    console.log('---------------- FE', env.FE_URL)
     if (process.env.NODE_ENV === 'development') {
       console.log(`🛠️ Dev server is running at http://localhost:${PORT}`)
     } else if (process.env.NODE_ENV === 'production') {
