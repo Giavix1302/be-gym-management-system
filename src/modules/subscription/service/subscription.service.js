@@ -2,7 +2,7 @@ import { membershipModel } from '~/modules/membership/model/membership.model'
 import { paymentService } from '~/modules/payment/service/payment.service'
 import { userModel } from '~/modules/user/model/user.model'
 import { countRemainingDays, sanitize } from '~/utils/utils'
-import { SUBSCRIPTION_STATUS, PAYMENT_STATUS } from '~/utils/constants.js'
+import { SUBSCRIPTION_STATUS, PAYMENT_STATUS, STATUS_TYPE } from '~/utils/constants.js'
 import { subscriptionModel } from '../model/subscription.model'
 import { getLinkPaymentTemp } from '~/utils/redis'
 
@@ -28,6 +28,11 @@ const subscribeMembership = async (data) => {
     }
 
     const result = await subscriptionModel.createNew(dataToSave)
+
+    if (result.insertedId) {
+      // update status user
+      await userModel.updateInfo(userId, { status: STATUS_TYPE.ACTIVE })
+    }
 
     // handle create
 
@@ -68,6 +73,9 @@ const getSubDetailByUserId = async (userId) => {
     let updatedStatus = status
     if (updateRemainingSessions === 0) {
       updatedStatus = SUBSCRIPTION_STATUS.EXPIRED
+
+      // update status in user === inactive
+      await userModel.updateInfo(userId, { status: STATUS_TYPE.INACTIVE })
     }
 
     const dataToUpdate = {

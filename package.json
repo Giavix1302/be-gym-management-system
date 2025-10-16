@@ -6,7 +6,7 @@
     "dev": "cross-env NODE_ENV=development nodemon --exec babel-node ./src/server.js",
     "build": "npm run build-babel",
     "build-babel": "npx babel ./src -d ./build/src",
-    "production": "npm run build && cross-env BUILD_MODE=production node ./build/src/server.js",
+    "production": "npm run build && cross-env NODE_ENV=production node ./build/src/server.js",
     "start": "npm run production",
     "lint": "eslint ./src"
   },
@@ -28,6 +28,7 @@
     "mongodb": "^6.17.0",
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
+    "qrcode": "^1.5.4",
     "redis": "^5.8.1",
     "twilio": "^5.8.0",
     "vnpay": "^2.4.1"

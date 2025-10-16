@@ -40,7 +40,7 @@ export const BOOKING_STATUS = {
 }
 
 export const CHECKIN_METHOD = {
-  CARD: 'card',
+  QRCODE: 'qrCode',
   FACE: 'face',
 }
 

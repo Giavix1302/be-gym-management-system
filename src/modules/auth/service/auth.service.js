@@ -6,6 +6,7 @@ import { userModel } from '~/modules/user/model/user.model.js'
 import { sanitize } from '~/utils/utils.js'
 import { subscriptionService } from '~/modules/subscription/service/subscription.service'
 import { trainerService } from '~/modules/trainer/service/trainer.service'
+import { STATUS_TYPE } from '~/utils/constants'
 
 const login = async (reqBody) => {
   try {
@@ -125,6 +126,7 @@ const signup = async (reqBody) => {
     // Production → gửi OTP qua Twilio
     if (process.env.NODE_ENV === 'production') {
       const result = await sendOtpService(phone)
+      console.log('🚀 ~ signup ~ result:', result)
       if (!result.success) return { success: false, message: result.message }
 
       await saveUserTemp(phone, userData)
@@ -155,11 +157,13 @@ const verify = async (reqBody) => {
         // them trường status
         userData = {
           ...userData,
-          status: 'inactive',
+          status: STATUS_TYPE.INACTIVE,
         }
         // tạo user và lấy dữ liệu user mới tạo
-        const result = await userModel.createNew(userData)
-        const user = await userModel.getDetailById(result.insertedId)
+        const resultUser = await userModel.createNew(userData)
+        const user = await userModel.getDetailById(resultUser.insertedId)
+
+        // tạo qr unique cho user
 
         // generate tokens
         const payload = { userId: user._id, role: user.role }
@@ -190,7 +194,7 @@ const verify = async (reqBody) => {
         // them trường status
         userData = {
           ...userData,
-          status: 'inactive',
+          status: STATUS_TYPE.INACTIVE,
         }
         // tạo user và lấy dữ liệu user mới tạo
         const result = await userModel.createNew(userData)

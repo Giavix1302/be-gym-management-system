@@ -1,7 +1,3 @@
-console.log('========================================')
-console.log('🔧 CORS CONFIG FILE IS BEING LOADED')
-console.log('========================================')
-
 import cors from 'cors'
 import { env } from './environment.config.js'
 
@@ -17,7 +13,6 @@ let corsOptions = {
 
 if (ENV === 'production') {
   corsOptions.origin = [env.FE_URL]
-  console.log('✅ Production CORS - Allowed origins:', corsOptions.origin)
 } else {
   // Development mode - allow both localhost AND ngrok URLs
   corsOptions.origin = function (origin, callback) {
@@ -37,9 +32,6 @@ if (ENV === 'production') {
       callback(new Error('Not allowed by CORS'))
     }
   }
-  console.log('✅ Development CORS - Allowing localhost and all ngrok URLs')
 }
-
-console.log('📋 Final CORS options:', JSON.stringify(corsOptions, null, 2))
 
 export default cors(corsOptions)

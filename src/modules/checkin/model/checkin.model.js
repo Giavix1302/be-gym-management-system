@@ -10,7 +10,8 @@ const CHECKIN_COLLECTION_SCHEMA = Joi.object({
   locationId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   checkinTime: Joi.string().isoDate().allow('').default(''),
   checkoutTime: Joi.string().isoDate().allow('').default(''),
-  method: Joi.string().valid(CHECKIN_METHOD.CARD, CHECKIN_METHOD.FACE),
+  hours: Joi.number().default(0),
+  method: Joi.string().valid(CHECKIN_METHOD.QRCODE, CHECKIN_METHOD.FACE).required(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),

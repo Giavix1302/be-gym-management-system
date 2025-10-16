@@ -3,6 +3,7 @@ import { sanitize, updateImages } from '~/utils/utils'
 import { trainerModel } from '../model/trainer.model'
 import { userModel } from '~/modules/user/model/user.model'
 import { deleteImageByUrl } from '~/config/cloudinary.config'
+import { STATUS_TYPE } from '~/utils/constants'
 
 const createNew = async (req) => {
   try {
@@ -99,6 +100,8 @@ const updateIsApproved = async (trainerId, data) => {
     }
     // check trainer
     const trainerInfo = await trainerModel.updateInfo(trainerId, dataToUpdate)
+
+    if (trainerInfo) await userModel.updateInfo(trainerInfo.userId, { status: STATUS_TYPE.ACTIVE })
 
     return {
       success: true,
