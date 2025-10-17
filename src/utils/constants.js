@@ -39,7 +39,7 @@ export const BOOKING_STATUS = {
   CANCELLED: 'cancelled',
 }
 
-export const CHECKIN_METHOD = {
+export const ATTENDANCE_METHOD = {
   QRCODE: 'qrCode',
   FACE: 'face',
 }

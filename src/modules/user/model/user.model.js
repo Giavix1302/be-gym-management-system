@@ -24,6 +24,8 @@ const USER_COLLECTION_SCHEMA = Joi.object({
 
   status: Joi.string().valid(STATUS_TYPE.ACTIVE, STATUS_TYPE.INACTIVE).required(),
 
+  qrCode: Joi.string().trim().strict().default(''),
+
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false),

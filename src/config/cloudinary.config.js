@@ -48,3 +48,6 @@ export const deleteImageByUrl = async (url) => {
 }
 
 export const upload = multer({ storage })
+
+// Export the cloudinary instance - THIS WAS MISSING
+export { cloudinary }

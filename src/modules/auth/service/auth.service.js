@@ -7,6 +7,8 @@ import { sanitize } from '~/utils/utils.js'
 import { subscriptionService } from '~/modules/subscription/service/subscription.service'
 import { trainerService } from '~/modules/trainer/service/trainer.service'
 import { STATUS_TYPE } from '~/utils/constants'
+import { cloudinary } from '~/config/cloudinary.config'
+import QRCode from 'qrcode'
 
 const login = async (reqBody) => {
   try {
@@ -143,84 +145,161 @@ const signup = async (reqBody) => {
   }
 }
 
+const generateAndUploadQRCode = async (user) => {
+  try {
+    // Verify cloudinary is properly configured
+    if (!cloudinary || !cloudinary.uploader) {
+      console.error('❌ Cloudinary is not properly configured')
+      throw new Error('Cloudinary configuration error')
+    }
+
+    // Create QR code data
+    const qrData = JSON.stringify({
+      userId: user._id,
+      fullName: user.fullName,
+      phone: user.phone,
+      role: user.role,
+    })
+
+    // Generate QR code as base64
+    const qrImageBase64 = await QRCode.toDataURL(qrData)
+
+    // Upload to Cloudinary
+    const uploadResponse = await cloudinary.uploader.upload(qrImageBase64, {
+      folder: 'gms-qr',
+      public_id: `qr_${user._id}`,
+      overwrite: true,
+    })
+
+    // Update user with QR code URL
+    const updatedUser = await userModel.updateInfo(user._id, {
+      qrCode: uploadResponse.secure_url,
+    })
+
+    return {
+      success: true,
+      user: updatedUser,
+    }
+  } catch (error) {
+    console.error('❌ QR Code generation/upload error:', error)
+    return {
+      success: false,
+      error: error.message,
+      user: user, // Return original user without QR code
+    }
+  }
+}
+
+// Helper function to generate tokens
+const generateTokens = (user) => {
+  const payload = { userId: user._id, role: user.role }
+  return {
+    accessToken: signAccessToken(payload),
+    refreshToken: signRefreshToken(payload),
+  }
+}
+
+// Helper function to validate OTP based on environment
+const validateOTP = async (phone, code) => {
+  if (process.env.NODE_ENV === 'production') {
+    return await verifyOtp(phone, code)
+  }
+
+  // Development environment
+  if (code === '123456') {
+    return {
+      success: true,
+      message: 'Development OTP verified',
+    }
+  }
+
+  return {
+    success: false,
+    message: 'Invalid OTP code. Please try again.',
+  }
+}
+
+// Main verify function
 const verify = async (reqBody) => {
   try {
     const { phone, code } = reqBody
-    // production
-    if (process.env.NODE_ENV === 'production') {
-      const result = await verifyOtp(phone, code)
-      if (result.success) {
-        // lấy dữ liệu từ redis
-        let userData = await getUserTemp(phone)
-        console.log('🚀 ~ verify ~ userData:', userData)
 
-        // them trường status
-        userData = {
-          ...userData,
-          status: STATUS_TYPE.INACTIVE,
-        }
-        // tạo user và lấy dữ liệu user mới tạo
-        const resultUser = await userModel.createNew(userData)
-        const user = await userModel.getDetailById(resultUser.insertedId)
-
-        // tạo qr unique cho user
-
-        // generate tokens
-        const payload = { userId: user._id, role: user.role }
-        const accessToken = signAccessToken(payload)
-        const refreshToken = signRefreshToken(payload)
-
-        return {
-          success: true,
-          message: 'Account created successfully',
-          user: sanitize(user),
-          accessToken,
-          refreshToken,
-        }
-      } else {
-        return {
-          success: false,
-          message: result.message,
-        }
+    // Validate required fields
+    if (!phone || !code) {
+      return {
+        success: false,
+        message: 'Phone number and OTP code are required',
       }
     }
-    // development
-    if (process.env.NODE_ENV === 'development') {
-      if (code === '123456') {
-        // lấy dữ liệu từ redis
-        let userData = await getUserTemp(phone)
-        console.log('🚀 ~ verify ~ userData:', userData)
 
-        // them trường status
-        userData = {
-          ...userData,
-          status: STATUS_TYPE.INACTIVE,
-        }
-        // tạo user và lấy dữ liệu user mới tạo
-        const result = await userModel.createNew(userData)
-        const user = await userModel.getDetailById(result.insertedId)
-
-        // generate tokens
-        const payload = { userId: user._id, role: user.role }
-        const accessToken = signAccessToken(payload)
-        const refreshToken = signRefreshToken(payload)
-
-        return {
-          success: true,
-          message: 'Account created successfully',
-          user: sanitize(user),
-          accessToken,
-          refreshToken,
-        }
-      } else {
-        return {
-          success: false,
-          message: 'Invalid OTP code. Please try again.',
-        }
+    // Validate OTP
+    const otpResult = await validateOTP(phone, code)
+    if (!otpResult.success) {
+      return {
+        success: false,
+        message: otpResult.message,
       }
+    }
+
+    // Get user data from Redis
+    let userData = await getUserTemp(phone)
+    if (!userData) {
+      return {
+        success: false,
+        message: 'User data not found. Please restart the registration process.',
+      }
+    }
+
+    console.log('🚀 ~ verify ~ userData:', userData)
+
+    // Add status field
+    userData = {
+      ...userData,
+      status: STATUS_TYPE.INACTIVE,
+    }
+
+    // Create new user
+    const createResult = await userModel.createNew(userData)
+    if (!createResult || !createResult.insertedId) {
+      throw new Error('Failed to create user')
+    }
+
+    // Get created user details
+    const user = await userModel.getDetailById(createResult.insertedId)
+    if (!user) {
+      throw new Error('Failed to retrieve created user')
+    }
+
+    // Generate QR code (with fallback handling)
+    const qrResult = await generateAndUploadQRCode(user)
+    const finalUser = qrResult.user
+
+    // Generate authentication tokens
+    const tokens = generateTokens(finalUser)
+
+    // Determine response message based on QR code generation
+    let message = 'Account created successfully'
+    if (!qrResult.success) {
+      message = 'Account created successfully (QR code will be generated later)'
+      console.warn('⚠️ QR code generation failed:', qrResult.error)
+    }
+
+    return {
+      success: true,
+      message,
+      user: sanitize(finalUser),
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     }
   } catch (error) {
-    throw new Error(error)
+    console.error('❌ Verify function error:', error)
+
+    // Return structured error response
+    return {
+      success: false,
+      message: 'An error occurred during account verification. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    }
   }
 }
 

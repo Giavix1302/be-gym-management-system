@@ -16,6 +16,7 @@ import { reviewRoute } from '~/modules/review/router/review.route'
 import { scheduleRoute } from '~/modules/schedule/router/schedule.route'
 import { classSessionRoute } from '~/modules/classSession/router/classSession.route'
 import { classEnrollmentRoute } from '~/modules/classEnrollment/router/classEnrollment.route'
+import { attendanceRoute } from '~/modules/attendance/router/attendance.route'
 
 const Router = express.Router()
 
@@ -57,5 +58,7 @@ Router.use('/schedules', scheduleRoute)
 Router.use('/class-enrollments', classEnrollmentRoute)
 
 Router.use('/class-sessions', classSessionRoute)
+
+Router.use('/attendances', attendanceRoute)
 
 export const APIs_V1 = Router
